@@ -5,22 +5,22 @@
 ## Passos
 
 1. O Usuário lista as credenciais e escolhe uma para editar.
-2. O Cliente CLI decifra a credencial e exibe os dados atuais.
+2. O Cliente decifra a credencial e exibe os dados atuais.
 3. O Usuário altera os campos que quiser.
-4. O Cliente CLI cifra os novos dados com o Módulo de Criptografia.
-5. O Cliente CLI envia os dados atualizados ao Servidor.
+4. O Cliente cifra os novos dados com o Módulo de Criptografia.
+5. O Cliente envia os dados atualizados ao Servidor.
 6. O Servidor atualiza a credencial na tabela `credencial`.
 7. O Banco de Dados confirma a atualização.
-8. O Cliente CLI exibe a mensagem de sucesso.
+8. O Cliente exibe a mensagem de sucesso.
 9. (Exclusão) O Usuário escolhe uma credencial para apagar.
-10. O Cliente CLI envia a requisição de exclusão ao Servidor, que apaga da tabela e confirma.
+10. O Cliente envia a requisição de exclusão ao Servidor, que apaga da tabela e confirma.
 
 ## Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
     actor U as Usuário
-    participant C as Cliente CLI
+    participant C as Cliente
     participant CM as Módulo de Criptografia
     participant S as Servidor
     participant DB as Banco de Dados

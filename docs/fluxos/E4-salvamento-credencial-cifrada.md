@@ -4,21 +4,21 @@
 
 ## Passos
 
-1. O Usuário digita o comando para salvar uma credencial do Gmail no Cliente CLI.
-2. O Cliente CLI chama o Módulo de Criptografia para cifrar a senha do serviço.
+1. O Usuário digita o comando para salvar uma credencial do Gmail no Cliente.
+2. O Cliente chama o Módulo de Criptografia para cifrar a senha do serviço.
 3. O Módulo de Criptografia devolve os `dadosCifrados` e o `iv`.
-4. O Cliente CLI envia `usuarioId`, `servico`, `usuarioServico`, `dadosCifrados` e `iv` ao Servidor.
+4. O Cliente envia `usuarioId`, `servico`, `usuarioServico`, `dadosCifrados` e `iv` ao Servidor.
 5. O Servidor grava os dados na tabela `credencial`.
 6. O Banco de Dados confirma a inserção.
-7. O Servidor devolve a confirmação ao Cliente CLI.
-8. O Cliente CLI exibe a mensagem de sucesso.
+7. O Servidor devolve a confirmação ao Cliente.
+8. O Cliente exibe a mensagem de sucesso.
 
 ## Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
     actor U as Usuário
-    participant C as Cliente CLI
+    participant C as Cliente
     participant CM as Módulo de Criptografia
     participant S as Servidor
     participant DB as Banco de Dados

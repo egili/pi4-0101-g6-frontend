@@ -4,14 +4,14 @@
 
 ## Passos
 
-1. O Usuário A abre o Cliente CLI e se autentica.
-2. O Usuário B abre o Cliente CLI em outra máquina e se autentica.
+1. O Usuário A abre o Cliente e se autentica.
+2. O Usuário B abre o Cliente em outra máquina e se autentica.
 3. O Servidor aceita as duas conexões Socket simultaneamente.
 4. O Usuário A envia um comando (ex: cadastrar credencial).
 5. O Servidor processa em uma thread separada, sem bloquear a conexão do Usuário B.
 6. O Usuário B envia um comando em paralelo.
 7. O Servidor responde aos dois de forma independente.
-8. Os dois Clientes CLI exibem os resultados ao mesmo tempo.
+8. Os dois Clientes exibem os resultados ao mesmo tempo.
 
 ## Diagrama de sequência
 
@@ -19,8 +19,8 @@
 sequenceDiagram
     actor UA as Usuário A
     actor UB as Usuário B
-    participant CA as Cliente CLI (A)
-    participant CB as Cliente CLI (B)
+    participant CA as Cliente (A)
+    participant CB as Cliente (B)
     participant S as Servidor
     participant DB as Banco de Dados
 
