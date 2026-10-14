@@ -24,7 +24,7 @@ sequenceDiagram
     participant DB as Banco de Dados
 
     U->>C: exportar backup
-    C->>S: CT7 exportarBackup(usuarioId)
+    C->>S: CT7 exportarBackup
     S->>DB: CT10 Tabela credencial (buscar todas)
     DB-->>S: lista de credenciais cifradas
     S-->>C: CT7 backupCifrado (lista)

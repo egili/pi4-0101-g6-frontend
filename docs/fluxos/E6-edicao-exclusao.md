@@ -32,14 +32,14 @@ sequenceDiagram
     U->>C: altera e confirma
     C->>CM: cifrar(novosDados)
     CM-->>C: dadosCifradosNovos
-    C->>S: CT5 editarCredencial(credencialId, dadosCifradosNovos)
+    C->>S: CT5 editarCredencial
     S->>DB: CT10 Tabela credencial (atualizar)
     DB-->>S: confirmação
     S-->>C: CT5 credencialAtualizada
     C-->>U: exibe sucesso
 
     U->>C: escolhe credencial para excluir
-    C->>S: CT6 excluirCredencial(credencialId)
+    C->>S: CT6 excluirCredencial
     S->>DB: CT10 Tabela credencial (excluir)
     DB-->>S: confirmação
     S-->>C: CT6 credencialExcluida

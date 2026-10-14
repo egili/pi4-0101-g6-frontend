@@ -29,8 +29,8 @@ sequenceDiagram
     CM-->>C: salt
     C->>CM: deriva hash(senhaMestra, salt)
     CM-->>C: senhaMestraHash
-    C->>S: CT1 cadastrarUsuario(username, senhaMestraHash, salt)
-    S->>DB: CT11 Tabela usuario (inserir)
+    C->>S: CT1 cadastrarUsuario
+    S->>DB: CT9 Tabela usuario (inserir)
     DB-->>S: confirmação
     S-->>C: CT1 usuarioCadastrado
     C-->>U: exibe mensagem de sucesso

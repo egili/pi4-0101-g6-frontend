@@ -15,13 +15,21 @@
 
 ```mermaid
 flowchart LR
-    U[Usuário] -->|Interface| C
-
+    U[Usuário] -->|Interface UI| C
+    
     subgraph C[Cliente<br>Java JDK 17+]
         CM[Módulo de Criptografia<br>Back-end 2<br>Cifra, decifra, deriva chaves]
     end
-
-    C -->|Socket TCP<br>Dados cifrados| S[Servidor<br>Back-end 1<br>Java JDK 17+]
+    
+    C -->|Socket TCP / Comandos Customizados| S[Servidor<br>Back-end 1<br>Java JDK 17+]
     S -->|JDBC / SQL| DB[(Banco de Dados<br>Postgres<br>Armazena dados cifrados)]
     S -.-> I[Infraestrutura<br>Docker + Compose]
     I -.-> DB
+```
+
+## Convenção de Nomes
+
+Para manter a consistência entre os módulos e o banco de dados, adotamos a seguinte convenção:
+- **Mensagens entre módulos (Cliente $\leftrightarrow$ Servidor):** Utilizamos `camelCase` para nomes de campos (ex: `usuarioId`, `senhaMestraHash`) e verbo no infinitivo seguido do objeto para operações (ex: `cadastrarUsuario`, `salvarCredencial`).
+- **Banco de Dados:** Utilizamos `snake_case` para nomes de tabelas e colunas (ex: `usuario_id`, `senha_mestra_hash`).
+- **Mensagens de Aviso:** O objeto seguido do evento (ex: `usuarioCadastrado`, `credencialSalva`).
