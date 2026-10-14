@@ -24,7 +24,7 @@ sequenceDiagram
     participant DB as Banco de Dados
 
     U->>C: lista credenciais
-    C->>S: CT4 listarCredenciais(usuarioId)
+    C->>S: CT4 listarCredenciais
     S->>DB: CT10 Tabela credencial (buscar por usuário)
     DB-->>S: lista de credenciais cifradas
     S-->>C: CT4 listaCredenciais

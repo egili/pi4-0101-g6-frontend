@@ -26,7 +26,7 @@ sequenceDiagram
     U->>C: digita credencial do Gmail
     C->>CM: cifrar(senha, chaveMestra)
     CM-->>C: dadosCifrados + iv
-    C->>S: CT2 salvarCredencial(usuarioId, servico, usuarioServico, dadosCifrados, iv)
+    C->>S: CT2 salvarCredencial
     S->>DB: CT10 Tabela credencial (inserir)
     DB-->>S: confirmação
     S-->>C: CT2 credencialSalva

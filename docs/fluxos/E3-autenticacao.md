@@ -26,8 +26,8 @@ sequenceDiagram
     U->>C: informa usuário e senha mestra
     C->>CM: deriva hash(senhaMestra, salt)
     CM-->>C: senhaMestraHash
-    C->>S: CT3 autenticarUsuario(username, senhaMestraHash)
-    S->>DB: CT11 Tabela usuario (buscar)
+    C->>S: CT3 autenticarUsuario
+    S->>DB: CT9 Tabela usuario (buscar)
     DB-->>S: senhaMestraHash armazenado
     S-->>C: CT3 tokenSessao
     C-->>U: exibe menu do cofre

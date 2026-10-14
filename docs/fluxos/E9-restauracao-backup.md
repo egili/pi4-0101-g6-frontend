@@ -30,7 +30,7 @@ sequenceDiagram
     CM-->>C: credenciais em texto claro
     C->>CM: cifrar(cada credencial)
     CM-->>C: credenciais cifradas
-    C->>S: CT8 importarBackup(listaCredenciais)
+    C->>S: CT8 importarBackup
     S->>DB: CT10 Tabela credencial (inserir em lote)
     DB-->>S: confirmação
     S-->>C: CT8 backupRestaurado
