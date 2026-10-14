@@ -5,20 +5,20 @@
 ## Passos
 
 1. O Usuário digita o comando para exportar o backup.
-2. O Cliente CLI solicita ao Servidor todas as credenciais cifradas do usuário.
+2. O Cliente solicita ao Servidor todas as credenciais cifradas do usuário.
 3. O Servidor busca na tabela `credencial` e devolve a lista.
-4. O Cliente CLI empacota os dados em um arquivo `.vault`.
-5. O Cliente CLI chama o Módulo de Criptografia para cifrar o pacote com a chave mestra.
+4. O Cliente empacota os dados em um arquivo `.vault`.
+5. O Cliente chama o Módulo de Criptografia para cifrar o pacote com a chave mestra.
 6. O Módulo de Criptografia devolve o pacote cifrado.
-7. O Cliente CLI grava o arquivo no sistema de arquivos local.
-8. O Cliente CLI exibe o caminho do arquivo salvo ao Usuário.
+7. O Cliente grava o arquivo no sistema de arquivos local.
+8. O Cliente exibe o caminho do arquivo salvo ao Usuário.
 
 ## Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
     actor U as Usuário
-    participant C as Cliente CLI
+    participant C as Cliente
     participant CM as Módulo de Criptografia
     participant S as Servidor
     participant DB as Banco de Dados

@@ -5,20 +5,20 @@
 
 ## Passos
 
-1. O Usuário informa usuário e senha mestra no Cliente CLI.
-2. O Cliente CLI envia `username` e `senhaMestraHash` para o Servidor.
+1. O Usuário informa usuário e senha mestra no Cliente.
+2. O Cliente envia `username` e `senhaMestraHash` para o Servidor.
 3. O Servidor busca o usuário na tabela `usuario`.
 4. O Servidor compara o hash recebido com o armazenado.
 5. Se bater, o Servidor devolve a confirmação com um `tokenSessao`.
 6. Se não bater, o Servidor devolve erro `SENHA_INCORRETA`.
-7. O Cliente CLI exibe o menu do cofre ou a mensagem de erro.
+7. O Cliente exibe o menu do cofre ou a mensagem de erro.
 
 ## Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
     actor U as Usuário
-    participant C as Cliente CLI
+    participant C as Cliente
     participant CM as Módulo de Criptografia
     participant S as Servidor
     participant DB as Banco de Dados

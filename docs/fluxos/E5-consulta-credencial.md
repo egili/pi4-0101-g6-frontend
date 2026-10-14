@@ -5,20 +5,20 @@
 ## Passos
 
 1. O Usuário digita o comando para listar suas credenciais.
-2. O Cliente CLI envia a requisição de listagem ao Servidor.
+2. O Cliente envia a requisição de listagem ao Servidor.
 3. O Servidor busca as credenciais do usuário na tabela `credencial`.
 4. O Servidor devolve a lista com `dadosCifrados` e `iv`.
 5. O Usuário escolhe uma credencial para consultar.
-6. O Cliente CLI chama o Módulo de Criptografia para decifrar a senha.
+6. O Cliente chama o Módulo de Criptografia para decifrar a senha.
 7. O Módulo de Criptografia devolve a senha em texto claro.
-8. O Cliente CLI exibe a senha para o Usuário.
+8. O Cliente exibe a senha para o Usuário.
 
 ## Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
     actor U as Usuário
-    participant C as Cliente CLI
+    participant C as Cliente
     participant CM as Módulo de Criptografia
     participant S as Servidor
     participant DB as Banco de Dados
