@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cofre — Cofre de Senhas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/cofre.css" />
+</head>
+<body class="page-cofre">
+  <div class="vault" id="vault">
+    <aside class="vault-sidebar">
+      <div class="vault-sidebar__top">
+        <div class="vault-sidebar__heading">
+          <h1 class="vault-sidebar__title">Contas</h1>
+          <div class="vault-sidebar__actions">
+            <button type="button" class="chip" id="btn-pasta">+Pasta</button>
+            <button type="button" class="chip" id="btn-conta">+Conta</button>
+          </div>
+        </div>
+
+        <a href="index.html" class="btn-lock" id="btn-bloquear">Bloquear Cofre</a>
+
+        <label class="search" for="busca">
+          <span class="search__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M16 16l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <input
+            type="search"
+            id="busca"
+            placeholder="Buscar pasta, conta login ou email"
+          />
+        </label>
+      </div>
+
+      <nav class="tree" aria-label="Pastas e contas">
+        <button type="button" class="tree-item" data-id="pasta-1" data-type="pasta">
+          <span class="tree-item__caret">›</span>
+          <span class="tree-item__label">PASTA 1</span>
+        </button>
+
+        <button type="button" class="tree-item" data-id="pasta-2" data-type="pasta">
+          <span class="tree-item__caret">›</span>
+          <span class="tree-item__label">PASTA 2</span>
+        </button>
+
+        <div class="tree-group is-open">
+          <button type="button" class="tree-item is-active" data-id="pasta-3" data-type="pasta" aria-current="true">
+            <span class="tree-item__caret">›</span>
+            <span class="tree-item__label">PASTA 3</span>
+          </button>
+
+          <button type="button" class="tree-item tree-item--child" data-id="conta-exemplo" data-type="conta">
+            <span class="tree-item__label">Conta exemplo</span>
+          </button>
+        </div>
+      </nav>
+    </aside>
+
+    <section class="vault-detail" aria-labelledby="detail-title">
+      <!-- View: Pasta -->
+      <div class="view view--pasta is-visible" id="view-pasta">
+        <header class="vault-detail__header">
+          <h2 id="detail-title" class="vault-detail__title">Pasta</h2>
+          <button type="button" class="menu-btn btn-open-tools" aria-label="Abrir ferramentas">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </header>
+
+        <div class="vault-detail__body">
+          <div class="detail-field">
+            <label for="pasta-nome">NOME:</label>
+            <div class="detail-field__row">
+              <input type="text" id="pasta-nome" value="PASTA 3" readonly />
+              <button type="button" class="btn-copy" data-copy-target="pasta-nome">COPIAR</button>
+            </div>
+          </div>
+
+          <div class="detail-field detail-field--stack">
+            <label for="pasta-descricao">Descrição:</label>
+            <textarea id="pasta-descricao" rows="8" readonly>Pasta de contas pessoais e acessos frequentes.</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- View: Conta -->
+      <div class="view view--conta" id="view-conta" hidden>
+        <header class="vault-detail__header">
+          <h2 class="vault-detail__title">Conta</h2>
+          <div class="vault-detail__header-actions">
+            <button type="button" class="btn-fav" id="btn-favoritar" aria-pressed="false">
+              <span aria-hidden="true">★</span> FAVORITAR
+            </button>
+            <button type="button" class="menu-btn btn-open-tools" aria-label="Abrir ferramentas">
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+          </div>
+        </header>
+
+        <div class="vault-detail__body">
+          <div class="detail-field">
+            <label for="conta-nome">NOME:</label>
+            <div class="detail-field__row">
+              <input type="text" id="conta-nome" value="Conta exemplo" readonly />
+              <button type="button" class="btn-copy" data-copy-target="conta-nome">COPIAR</button>
+            </div>
+          </div>
+
+          <div class="info-block">
+            <h3 class="info-block__title">Informações:</h3>
+
+            <div class="detail-field">
+              <label for="conta-login">LOGIN:</label>
+              <div class="detail-field__row">
+                <input type="text" id="conta-login" value="usuario.exemplo" readonly />
+                <button type="button" class="btn-copy" data-copy-target="conta-login">COPIAR</button>
+              </div>
+            </div>
+
+            <div class="detail-field">
+              <label for="conta-email">EMAIL:</label>
+              <div class="detail-field__row">
+                <input type="email" id="conta-email" value="exemplo@email.com" readonly />
+                <button type="button" class="btn-copy" data-copy-target="conta-email">COPIAR</button>
+              </div>
+            </div>
+
+            <div class="detail-field">
+              <label for="conta-senha">SENHA:</label>
+              <div class="detail-field__row">
+                <input type="password" id="conta-senha" value="S3nhaF0rte!" readonly />
+                <button type="button" class="btn-ghost" id="btn-mostrar-senha">MOSTRAR</button>
+                <button type="button" class="btn-copy" data-copy-target="conta-senha">COPIAR</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-field detail-field--stack">
+            <label for="conta-notas">Notas:</label>
+            <textarea id="conta-notas" rows="5" readonly>Conta de exemplo usada para demonstração do cofre.</textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="vault-tools" id="vault-tools" aria-hidden="true">
+      <div class="vault-tools__inner">
+        <header class="vault-tools__header">
+          <h2 class="vault-tools__title">Ferramentas</h2>
+          <button type="button" class="menu-btn menu-btn--close" id="btn-close-tools" aria-label="Fechar ferramentas">
+            <span class="menu-btn__x" aria-hidden="true"></span>
+          </button>
+        </header>
+
+        <div class="tools-nav" role="tablist" aria-label="Ferramentas">
+          <button type="button" class="tools-nav__btn is-active" role="tab" aria-selected="true" data-tool="gerador">
+            GERADOR DE SENHAS
+          </button>
+          <button type="button" class="tools-nav__btn" role="tab" aria-selected="false" data-tool="mestra">
+            ALTERAR SENHA MESTRE
+          </button>
+          <button type="button" class="tools-nav__btn" role="tab" aria-selected="false" data-tool="backup">
+            BACKUP E RESTAURAÇÃO
+          </button>
+        </div>
+
+        <div class="tools-panels">
+          <!-- Gerador -->
+          <div class="tool-panel is-active" id="tool-gerador" role="tabpanel">
+            <h3 class="tool-panel__title">GERADOR DE SENHAS</h3>
+
+            <div class="generator">
+              <label class="generator__label" for="senha-length">
+                Quantidade de caracteres: <strong id="senha-length-value">16</strong>
+              </label>
+              <input type="range" id="senha-length" min="8" max="64" value="16" />
+
+              <div class="generator__options">
+                <label class="check"><input type="checkbox" id="opt-upper" checked /> Maiúscula</label>
+                <label class="check"><input type="checkbox" id="opt-lower" checked /> Minúscula</label>
+                <label class="check"><input type="checkbox" id="opt-number" checked /> Número</label>
+                <label class="check"><input type="checkbox" id="opt-symbol" checked /> Símbolos</label>
+              </div>
+
+              <button type="button" class="btn-tool" id="btn-gerar-senha">Gerar senha</button>
+
+              <div class="detail-field__row generator__result">
+                <input type="text" id="senha-gerada" readonly value="" placeholder="Senha gerada" />
+                <button type="button" class="btn-copy" data-copy-target="senha-gerada">COPIAR</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Senha mestra -->
+          <div class="tool-panel" id="tool-mestra" role="tabpanel" hidden>
+            <h3 class="tool-panel__title">ALTERAR SENHA MESTRE</h3>
+
+            <form class="tool-form" id="form-senha-mestra">
+              <input type="password" placeholder="Senha mestra atual" required />
+              <input type="password" placeholder="Nova senha" required />
+              <input type="password" placeholder="Confirmar nova senha" required />
+              <button type="submit" class="btn-tool btn-tool--full">Salvar nova senha mestre</button>
+            </form>
+          </div>
+
+          <!-- Backup -->
+          <div class="tool-panel" id="tool-backup" role="tabpanel" hidden>
+            <h3 class="tool-panel__title">BACKUP E RESTAURAÇÃO</h3>
+
+            <div class="tool-form">
+              <button type="button" class="btn-tool btn-tool--full" id="btn-exportar">
+                Exportar backup criptografado
+              </button>
+
+              <label class="file-pick" for="backup-file">
+                <span>Escolher arquivo</span>
+                <input type="file" id="backup-file" />
+              </label>
+
+              <input type="password" id="backup-senha" placeholder="Senha do backup para importar" />
+
+              <button type="button" class="btn-tool btn-tool--full" id="btn-importar">
+                Importar backup criptografado
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="assets/js/cofre.js"></script>
+</body>
+</html>
