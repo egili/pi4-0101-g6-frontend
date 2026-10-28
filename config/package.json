@@ -1,0 +1,22 @@
+{
+  "name": "cofre-senhas-backend",
+  "version": "0.1.0",
+  "description": "Backend inicial do Cofre de Senhas",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": ["cofre", "senhas", "backend"],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}
