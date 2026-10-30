@@ -2,9 +2,7 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ "main", "master" ]
   pull_request:
-    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -12,11 +10,23 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Checkout do Módulo de Criptografia
+      uses: actions/checkout@v4
+      with:
+        repository: egili/pi4-0101-g6-backend-2
+        ref: main
+        path: modulo-criptografia
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-    - name: Build with Maven
+
+    - name: Instalar o Módulo de Criptografia no Maven local
+      run: mvn -B install -DskipTests -f modulo-criptografia/pom.xml
+
+    - name: Build e testes do Cliente
       run: mvn -B test
