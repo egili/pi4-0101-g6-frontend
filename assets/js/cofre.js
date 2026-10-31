@@ -245,6 +245,32 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function avisarQuedaEPedirLogin(status) {
+    if (status.online !== false) return;
+
+    const extra = status.duranteGravacao || HttpClient.houveQuedaDuranteGravacao()
+      ? " Confira a lista de credenciais antes de repetir a gravação."
+      : "";
+
+    window.alert(
+      (status.mensagem || "Conexão caiu.") +
+        extra +
+        " Faça uma nova conexão e um novo login."
+    );
+    window.location.href = "index.html";
+  }
+
+  if (window.HttpClient) {
+    HttpClient.onStatusChange(avisarQuedaEPedirLogin);
+
+    if (HttpClient.houveQuedaDuranteGravacao()) {
+      window.alert(
+        "Houve uma queda durante uma gravação anterior. Confira a lista de credenciais abaixo antes de repetir o comando."
+      );
+      HttpClient.limparGravacaoPendente();
+    }
+  }
+
   // Gera uma senha inicial no painel
   generatePassword();
 });
