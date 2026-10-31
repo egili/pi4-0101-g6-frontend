@@ -56,7 +56,13 @@
       "backend1",
       "/api/cadastrarUsuario",
       { username, senhaMestraHash, salt },
-      { isWrite: true, writeId: `register:${username}` }
+      {
+        isWrite: true,
+        writeId: `register:${username}`,
+        requireBody: true,
+        emptyMessage:
+          "Cadastro sem resposta do servidor. Nada foi confirmado como sucesso.",
+      }
     );
 
     const data = HttpClient.exigirResposta(

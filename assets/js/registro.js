@@ -65,8 +65,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const conexao = await HttpClient.testarConexoes();
       if (!conexao.online) {
         exibirAlerta(
-          conexao.mensagem +
-            " Sem resposta dos servidores — o cadastro não foi confirmado.",
+          (conexao.mensagem || "Sem resposta dos servidores.") +
+            " O cadastro não foi confirmado. Teste a conexão e faça um novo login.",
           "erro"
         );
         return;

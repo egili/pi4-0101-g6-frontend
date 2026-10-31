@@ -245,12 +245,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  let jaAvisouQueda = false;
+
   function avisarQuedaEPedirLogin(status) {
     if (status.online !== false) return;
+    if (jaAvisouQueda) return;
+    jaAvisouQueda = true;
 
-    const extra = status.duranteGravacao || HttpClient.houveQuedaDuranteGravacao()
-      ? " Confira a lista de credenciais antes de repetir a gravação."
-      : "";
+    const extra =
+      status.duranteGravacao || HttpClient.houveQuedaDuranteGravacao()
+        ? " Confira a lista de credenciais antes de repetir a gravação."
+        : "";
 
     window.alert(
       (status.mensagem || "Conexão caiu.") +
@@ -267,6 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
       window.alert(
         "Houve uma queda durante uma gravação anterior. Confira a lista de credenciais abaixo antes de repetir o comando."
       );
+      // Mantém a flag até o usuário ver a lista; limpa só após o aviso no cofre
       HttpClient.limparGravacaoPendente();
     }
   }

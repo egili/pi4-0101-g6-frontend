@@ -37,26 +37,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!conexao.online) {
         exibirAlerta(
-          conexao.mensagem +
-            " Não é possível entrar sem resposta dos servidores.",
+          (conexao.mensagem || "Sem resposta dos servidores.") +
+            " Não é possível entrar sem resposta. Teste a conexão e tente um novo login.",
           "erro"
         );
         return;
       }
 
-      // Login completo (CT3) ainda será ligado aos backends.
-      // Só avança com conexão confirmada — nunca sucesso sem resposta.
+      // Nunca avança como sucesso se os testes não responderam
+      if (!conexao.testes?.backend1?.ok || !conexao.testes?.backend2?.ok) {
+        exibirAlerta(
+          "Teste de conexão incompleto. Nada foi confirmado como sucesso.",
+          "erro"
+        );
+        return;
+      }
+
       if (HttpClient.houveQuedaDuranteGravacao()) {
         exibirAlerta(
-          "Conexão OK. Ao abrir o cofre, confira a lista de credenciais antes de repetir qualquer gravação.",
+          "Conexão OK. No cofre, confira a lista de credenciais antes de repetir qualquer gravação.",
           "sucesso"
         );
+        await new Promise((r) => setTimeout(r, 900));
       }
 
       window.location.href = "cofre.html";
     } catch (erro) {
       exibirAlerta(
-        ApiCliente.mensagemErro(erro.codigo, erro.message),
+        (window.ApiCliente && ApiCliente.mensagemErro
+          ? ApiCliente.mensagemErro(erro.codigo, erro.message)
+          : erro.message) ||
+          "Falha de conexão. Teste a conexão e faça um novo login.",
         "erro"
       );
     } finally {

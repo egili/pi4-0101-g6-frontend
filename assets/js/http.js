@@ -1,18 +1,27 @@
 /**
- * Camada HTTP do Cliente (Fetch) para Back-end 1 e Back-end 2.
- * Sucesso só com resposta explícita; queda durante gravação é rastreada.
+ * Estrutura de comunicação HTTP (Fetch) do Cliente no navegador.
+ *
+ * - Testa conexão com Back-end 1 e Back-end 2
+ * - Trata erros de rede
+ * - Nunca considera sucesso sem resposta explícita do servidor
+ * - Se a conexão cair: marca offline e orienta nova conexão + novo login
+ * - Se cair no meio de gravação: persiste flag para o usuário conferir
+ *   a lista de credenciais antes de repetir
  */
 (function (global) {
   const STORAGE_QUEDA = "cofre:quedaDuranteGravacao";
+  const STORAGE_WRITE_ID = "cofre:quedaDuranteGravacao:id";
 
   const BASES = {
     backend1:
-      global.localStorage?.getItem("BACKEND1_URL") ||
+      (global.localStorage && global.localStorage.getItem("BACKEND1_URL")) ||
       "http://localhost:8080",
     backend2:
-      global.localStorage?.getItem("BACKEND2_URL") ||
+      (global.localStorage && global.localStorage.getItem("BACKEND2_URL")) ||
       "http://localhost:8081",
   };
+
+  const PATH_TESTE = "/api/health";
 
   const status = {
     online: null,
@@ -24,6 +33,8 @@
 
   const listeners = new Set();
   let gravacaoAtiva = null;
+  let monitorId = null;
+  let ultimoOnline = null;
 
   function baseUrl(alvo) {
     const key = String(alvo || "").toLowerCase();
@@ -33,7 +44,23 @@
   }
 
   function emitirStatus(parcial) {
+    const antes = status.online;
     Object.assign(status, parcial || {});
+    if (
+      status.duranteGravacao !== true &&
+      houveQuedaDuranteGravacao()
+    ) {
+      status.duranteGravacao = true;
+    }
+    ultimoOnline = status.online;
+
+    // Queda detectada: avisa consumidores (UI pede nova conexão + novo login)
+    if (antes === true && status.online === false) {
+      status.mensagem =
+        status.mensagem ||
+        "Conexão caiu. Teste a conexão novamente e faça um novo login.";
+    }
+
     listeners.forEach((fn) => {
       try {
         fn({ ...status });
@@ -54,7 +81,7 @@
 
   function houveQuedaDuranteGravacao() {
     try {
-      return global.sessionStorage?.getItem(STORAGE_QUEDA) === "1";
+      return global.sessionStorage.getItem(STORAGE_QUEDA) === "1";
     } catch (_) {
       return false;
     }
@@ -62,9 +89,9 @@
 
   function marcarQuedaDuranteGravacao(writeId) {
     try {
-      global.sessionStorage?.setItem(STORAGE_QUEDA, "1");
+      global.sessionStorage.setItem(STORAGE_QUEDA, "1");
       if (writeId) {
-        global.sessionStorage?.setItem(`${STORAGE_QUEDA}:id`, String(writeId));
+        global.sessionStorage.setItem(STORAGE_WRITE_ID, String(writeId));
       }
     } catch (_) {
       /* storage indisponível */
@@ -73,14 +100,14 @@
       online: false,
       duranteGravacao: true,
       mensagem:
-        "Conexão caiu durante uma gravação. Faça novo login e confira a lista antes de repetir.",
+        "Conexão caiu durante uma gravação. Faça nova conexão e novo login. Depois confira a lista de credenciais no cofre antes de repetir.",
     });
   }
 
   function limparGravacaoPendente() {
     try {
-      global.sessionStorage?.removeItem(STORAGE_QUEDA);
-      global.sessionStorage?.removeItem(`${STORAGE_QUEDA}:id`);
+      global.sessionStorage.removeItem(STORAGE_QUEDA);
+      global.sessionStorage.removeItem(STORAGE_WRITE_ID);
     } catch (_) {
       /* storage indisponível */
     }
@@ -100,21 +127,19 @@
 
   function extrairCodigoErro(data, fallback) {
     if (!data || typeof data !== "object") return fallback;
-    return (
-      data.codigo ||
-      data.erro ||
-      data.error ||
-      data.message ||
-      data.mensagem ||
-      fallback
-    );
+    return data.codigo || data.erro || data.error || fallback;
   }
 
+  /**
+   * Garante que um comando só é tratado como sucesso com resposta explícita.
+   * Sem corpo / null → erro SEM_RESPOSTA (nunca sucesso silencioso).
+   */
   function exigirResposta(resultado, mensagemSemResposta) {
     if (resultado == null) {
       throw criarErroRede(
         "SEM_RESPOSTA",
-        mensagemSemResposta || "Comando sem resposta do servidor."
+        mensagemSemResposta ||
+          "Comando sem resposta do servidor. Nada foi confirmado como sucesso."
       );
     }
 
@@ -129,8 +154,11 @@
         "CREDENCIAL_INVALIDA",
         "TOKEN_INVALIDO",
       ];
-      if (resultado.ok === false || (codigo && codigosErro.includes(codigo))) {
-        const err = new Error(codigo || mensagemSemResposta);
+
+      if (resultado.ok === false || (codigo && codigosErro.includes(String(codigo)))) {
+        const err = new Error(
+          resultado.mensagem || resultado.message || codigo || mensagemSemResposta
+        );
         err.codigo = codigo || "ERRO_BANCO";
         err.rede = err.codigo === "ERRO_CONEXAO";
         err.payload = resultado;
@@ -151,15 +179,28 @@
     }
   }
 
+  function ehErroDeRede(erro) {
+    if (!erro) return false;
+    if (erro.rede === true) return true;
+    if (erro.name === "AbortError") return true;
+    if (erro instanceof TypeError) return true;
+    return /Failed to fetch|NetworkError|Load failed|Network request failed/i.test(
+      erro.message || ""
+    );
+  }
+
   async function request(alvo, path, options) {
     const opts = options || {};
     const method = (opts.method || "GET").toUpperCase();
     const isWrite = opts.isWrite === true;
     const writeId = opts.writeId || null;
-    const url = `${baseUrl(alvo).replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+    const url = `${baseUrl(alvo).replace(/\/$/, "")}${
+      path.startsWith("/") ? path : `/${path}`
+    }`;
 
-    if (isWrite) {
-      gravacaoAtiva = writeId || `${method}:${url}`;
+    const writeToken = isWrite ? writeId || `${method}:${url}` : null;
+    if (writeToken) {
+      gravacaoAtiva = writeToken;
     }
 
     const controller = new AbortController();
@@ -171,9 +212,7 @@
         method,
         headers: {
           Accept: "application/json",
-          ...(opts.body != null
-            ? { "Content-Type": "application/json" }
-            : {}),
+          ...(opts.body != null ? { "Content-Type": "application/json" } : {}),
           ...(opts.headers || {}),
         },
         body: opts.body != null ? JSON.stringify(opts.body) : undefined,
@@ -195,24 +234,28 @@
         err.rede = response.status === 0 || response.status >= 502;
         err.status = response.status;
         err.payload = data;
+
+        if (err.rede && writeToken) {
+          marcarQuedaDuranteGravacao(writeToken);
+        }
         throw err;
       }
 
-      if (isWrite) {
-        gravacaoAtiva = null;
+      // Sucesso HTTP só vale se houver corpo quando a chamada exige resposta
+      if (opts.requireBody === true && data == null) {
+        throw criarErroRede(
+          "SEM_RESPOSTA",
+          opts.emptyMessage ||
+            "Comando sem resposta do servidor. Nada foi confirmado como sucesso."
+        );
       }
 
       return data;
     } catch (erro) {
-      const abortado = erro && erro.name === "AbortError";
-      const rede =
-        abortado ||
-        erro?.rede === true ||
-        erro instanceof TypeError ||
-        (erro && /Failed to fetch|NetworkError|Load failed/i.test(erro.message || ""));
+      const rede = ehErroDeRede(erro);
 
-      if (rede && isWrite && gravacaoAtiva) {
-        marcarQuedaDuranteGravacao(gravacaoAtiva);
+      if (rede && writeToken) {
+        marcarQuedaDuranteGravacao(writeToken);
       } else if (rede) {
         emitirStatus({
           online: false,
@@ -225,14 +268,14 @@
 
       throw criarErroRede(
         "ERRO_CONEXAO",
-        abortado
+        erro && erro.name === "AbortError"
           ? "Tempo esgotado ao falar com o servidor."
           : "Falha de conexão com o servidor.",
         { causa: erro }
       );
     } finally {
       clearTimeout(timer);
-      if (isWrite) {
+      if (writeToken && gravacaoAtiva === writeToken) {
         gravacaoAtiva = null;
       }
     }
@@ -250,12 +293,28 @@
     });
   }
 
-  async function ping(alvo) {
+  /**
+   * Requisição de teste isolada para um backend (health-check).
+   * Retorna { ok, alvo, url, erro? } — nunca lança.
+   */
+  async function enviarRequisicaoTeste(alvo) {
+    const url = `${baseUrl(alvo).replace(/\/$/, "")}${PATH_TESTE}`;
     try {
-      await get(alvo, "/api/health", { timeoutMs: 5000, isWrite: false });
-      return true;
-    } catch (_) {
-      return false;
+      const data = await get(alvo, PATH_TESTE, {
+        timeoutMs: 5000,
+        isWrite: false,
+      });
+      return { ok: true, alvo, url, data };
+    } catch (erro) {
+      return {
+        ok: false,
+        alvo,
+        url,
+        erro: {
+          codigo: erro.codigo || "ERRO_CONEXAO",
+          mensagem: erro.message || "Sem resposta",
+        },
+      };
     }
   }
 
@@ -265,18 +324,32 @@
       mensagem: "Testando conexão com Back-end 1 e Back-end 2…",
     });
 
-    const [ok1, ok2] = await Promise.all([ping("backend1"), ping("backend2")]);
+    const [t1, t2] = await Promise.all([
+      enviarRequisicaoTeste("backend1"),
+      enviarRequisicaoTeste("backend2"),
+    ]);
 
+    const ok1 = t1.ok === true;
+    const ok2 = t2.ok === true;
     const online = ok1 && ok2;
+
     let mensagem;
     if (online) {
       mensagem = "Conexão OK com Back-end 1 e Back-end 2.";
     } else if (!ok1 && !ok2) {
-      mensagem = "Sem resposta do Back-end 1 e do Back-end 2.";
+      mensagem =
+        "Sem resposta do Back-end 1 e do Back-end 2. Teste a conexão e faça um novo login.";
     } else if (!ok1) {
-      mensagem = "Sem resposta do Back-end 1 (cadastro/persistência).";
+      mensagem =
+        "Sem resposta do Back-end 1. Teste a conexão e faça um novo login.";
     } else {
-      mensagem = "Sem resposta do Back-end 2 (módulo de criptografia / hash).";
+      mensagem =
+        "Sem resposta do Back-end 2. Teste a conexão e faça um novo login.";
+    }
+
+    if (houveQuedaDuranteGravacao()) {
+      mensagem +=
+        " Houve queda durante uma gravação — confira a lista de credenciais no cofre antes de repetir.";
     }
 
     emitirStatus({
@@ -287,14 +360,58 @@
       duranteGravacao: houveQuedaDuranteGravacao(),
     });
 
-    return { online, backend1: ok1, backend2: ok2, mensagem };
+    return {
+      online,
+      backend1: ok1,
+      backend2: ok2,
+      mensagem,
+      testes: { backend1: t1, backend2: t2 },
+    };
+  }
+
+  /**
+   * Monitor periódico: detecta queda enquanto o Cliente está aberto.
+   */
+  function iniciarMonitor(intervaloMs) {
+    pararMonitor();
+    const ms = intervaloMs || 20000;
+    monitorId = global.setInterval(() => {
+      if (document.visibilityState === "hidden") return;
+      testarConexoes().catch(() => {
+        /* status já atualizado */
+      });
+    }, ms);
+  }
+
+  function pararMonitor() {
+    if (monitorId != null) {
+      global.clearInterval(monitorId);
+      monitorId = null;
+    }
+  }
+
+  // Offline do navegador → trata como queda de conexão
+  if (global.addEventListener) {
+    global.addEventListener("offline", () => {
+      if (gravacaoAtiva) {
+        marcarQuedaDuranteGravacao(gravacaoAtiva);
+      } else {
+        emitirStatus({
+          online: false,
+          mensagem:
+            "Navegador offline. Teste a conexão e faça um novo login.",
+        });
+      }
+    });
   }
 
   global.HttpClient = {
     BASES,
+    PATH_TESTE,
     get,
     post,
     request,
+    enviarRequisicaoTeste,
     testarConexoes,
     getStatus,
     onStatusChange,
@@ -303,5 +420,7 @@
     houveQuedaDuranteGravacao,
     limparGravacaoPendente,
     marcarQuedaDuranteGravacao,
+    iniciarMonitor,
+    pararMonitor,
   };
 })(window);
