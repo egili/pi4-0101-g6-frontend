@@ -1,9 +1,7 @@
-package br.edu.pi4.g6.cliente;
+package cofre;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import br.puc.cofre.backend2.dto.CryptoResponse;
-import br.puc.cofre.backend2.service.CryptoService;
 import org.junit.jupiter.api.Test;
 
 class ModuloCriptografiaTest {
