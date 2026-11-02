@@ -1,7 +1,7 @@
 FROM node:18-slim
 WORKDIR /app
-COPY package*.json ./
+COPY config/package*.json ./
 RUN npm install
-COPY . .
+COPY config/ .
 EXPOSE 3000
 CMD ["npm", "start"]
