@@ -1,49 +1,54 @@
 # Fluxo do E6: Edição e exclusão
 
-**Feito quando (da Entrega 1):** O usuário gerencia credenciais no cofre via interface web. Ao editar, os novos dados são cifrados antes do envio. Ao apagar um dado, não consegue mais visualizá-lo.
+**Feito quando (da Entrega 1):** O usuário cadastra dados pessoais no cofre e consegue consultá-los posteriormente. Ao apagar um dado, não consegue mais consultá-lo.
 
 ## Passos
 
-1. O Usuário visualiza as credenciais na interface Web e clica em editar em uma delas.
-2. O Cliente Web decifra a credencial localmente no navegador e exibe os dados atuais no modal de edição.
-3. O Usuário altera os campos desejados.
-4. O Cliente Web cifra os novos dados com a Web Crypto API no navegador.
-5. O Cliente Web envia os dados atualizados ao Servidor Back-end 1 via API Fetch (`PUT /credentials/{id}`).
+1. O Usuário lista as credenciais no navegador (Front-end web) e clica em editar uma delas.
+2. O Cliente (Back-end 2) decifra a credencial e devolve os dados atuais ao navegador, que os exibe.
+3. O Usuário altera os campos que quiser no formulário.
+4. O Cliente cifra os novos dados com o Módulo de Criptografia.
+5. O Cliente envia os dados atualizados ao Servidor via requisição HTTP (REST) `PUT /credentials/{id}` (CT5), com o header `Authorization: Bearer tokenSessao`.
 6. O Servidor atualiza a credencial na tabela `credencial`.
 7. O Banco de Dados confirma a atualização.
-8. O Cliente Web exibe a confirmação de sucesso na tela.
-9. (Exclusão) O Usuário clica no botão para apagar uma credencial.
-10. O Cliente Web envia a requisição de exclusão via API Fetch ao Servidor (`DELETE /credentials/{id}`).
-11. O Servidor remove da tabela e confirma a exclusão.
-12. O Cliente Web remove o item da interface e exibe aviso de sucesso.
+8. O Cliente devolve a confirmação ao navegador, que exibe a mensagem de sucesso.
+9. (Exclusão) O Usuário clica em excluir em uma credencial.
+10. O Cliente envia `DELETE /credentials/{id}` (CT6) ao Servidor, com o header `Authorization: Bearer tokenSessao`; o Servidor apaga da tabela e confirma.
 
 ## Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
     actor U as Usuário
-    participant C as Cliente Web
-    participant CM as Criptografia Local (Navegador)
-    participant S as Servidor Back-end 1
+    participant N as Navegador (Front-end web)
+    participant C as Cliente (Back-end 2)
+    participant CM as Módulo de Criptografia (Back-end 2)
+    participant S as Servidor (Back-end 1)
     participant DB as Banco de Dados
 
-    U->>C: clica para editar credencial
+    U->>N: clica em editar uma credencial
+    N->>C: pede dados da credencial
     C->>CM: decifrar(dadosCifrados)
     CM-->>C: dados em texto claro
-    C-->>U: exibe dados atuais no formulário web
-    U->>C: altera e clica em salvar
+    C-->>N: dados atuais
+    N-->>U: exibe dados atuais
+    U->>N: altera e confirma
+    N->>C: envia novos dados
     C->>CM: cifrar(novosDados)
     CM-->>C: dadosCifradosNovos
-    C->>S: fetch PUT /credentials/{id}
+    C->>S: CT5 PUT /credentials/{id} (Bearer tokenSessao)
     S->>DB: CT10 Tabela credencial (atualizar)
     DB-->>S: confirmação
-    S-->>C: CT5 credencialAtualizada
-    C-->>U: atualiza interface com mensagem de sucesso
+    S-->>C: credencialAtualizada
+    C-->>N: credencialAtualizada
+    N-->>U: exibe sucesso
 
-    U->>C: clica em excluir credencial
-    C->>S: fetch DELETE /credentials/{id}
+    U->>N: clica em excluir uma credencial
+    N->>C: pede exclusão
+    C->>S: CT6 DELETE /credentials/{id} (Bearer tokenSessao)
     S->>DB: CT10 Tabela credencial (excluir)
     DB-->>S: confirmação
-    S-->>C: CT6 credencialExcluida
-    C-->>U: remove item e exibe aviso de sucesso
+    S-->>C: credencialExcluida
+    C-->>N: credencialExcluida
+    N-->>U: exibe sucesso
 ```

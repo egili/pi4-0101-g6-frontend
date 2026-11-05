@@ -1,17 +1,17 @@
 # Fluxo do E1: Servidor multiconexão
 
-**Feito quando (da Entrega 1):** Dois usuários abrem a aplicação web ao mesmo tempo em abas ou navegadores distintos, enviam requisições e o servidor responde aos dois de forma paralela sem travar.
+**Feito quando (da Entrega 1):** Dois usuários fazem requisições HTTP ao mesmo tempo e o servidor responde aos dois de forma paralela sem travar.
 
 ## Passos
 
-1. O Usuário A acessa a interface Web e se autentica.
-2. O Usuário B acessa a interface Web em outro navegador/máquina e se autentica.
-3. O Servidor Back-end 1 processa as requisições HTTP simultaneamente.
-4. O Usuário A envia uma requisição via API Fetch (ex: cadastrar credencial).
-5. O Servidor processa de forma concorrente sem bloquear a conexão do Usuário B.
-6. O Usuário B envia uma requisição via API Fetch em paralelo.
-7. O Servidor responde a ambas as requisições de forma independente.
-8. Os dois Clientes Web recebem e exibem os resultados em tempo real na interface.
+1. O Usuário A abre o sistema no navegador (Front-end web) e se autentica pelo Cliente (Back-end 2).
+2. O Usuário B abre o sistema no seu navegador e se autentica pelo seu Cliente.
+3. O Servidor (Back-end 1) aceita as duas conexões HTTP simultaneamente.
+4. O Usuário A envia uma requisição pelo navegador (ex: cadastrar credencial), e o Cliente a repassa ao Servidor via requisição HTTP (REST).
+5. O Servidor processa em uma thread separada, sem bloquear a conexão do Usuário B.
+6. O Usuário B envia uma requisição em paralelo.
+7. O Servidor responde aos dois de forma independente.
+8. Os dois navegadores exibem os resultados ao mesmo tempo.
 
 ## Diagrama de sequência
 
@@ -19,27 +19,33 @@
 sequenceDiagram
     actor UA as Usuário A
     actor UB as Usuário B
-    participant CA as Cliente Web (A)
-    participant CB as Cliente Web (B)
-    participant S as Servidor Back-end 1
+    participant NA as Navegador A (Front-end web)
+    participant NB as Navegador B (Front-end web)
+    participant CA as Cliente A (Back-end 2)
+    participant CB as Cliente B (Back-end 2)
+    participant S as Servidor (Back-end 1)
     participant DB as Banco de Dados
 
-    UA->>CA: abre o cofre no navegador
-    UB->>CB: abre o cofre no navegador
-    CA->>S: fetch POST /usuarios/login (usuarioA)
+    UA->>NA: abre o sistema
+    UB->>NB: abre o sistema
+    NA->>CA: informa usuário e senha mestra
+    CA->>S: GET /salt/{username} e POST /login (usuário A)
     S->>DB: CT9 Tabela usuario (buscar)
     DB-->>S: dados do usuário A
-    S-->>CA: CT3 tokenSessao JWT
-    CB->>S: fetch POST /usuarios/login (usuarioB)
+    S-->>CA: tokenSessao A
+    NB->>CB: informa usuário e senha mestra
+    CB->>S: GET /salt/{username} e POST /login (usuário B)
     S->>DB: CT9 Tabela usuario (buscar)
     DB-->>S: dados do usuário B
-    S-->>CB: CT3 tokenSessao JWT
-    CA->>S: fetch POST /credentials (dadosCifradosA)
-    CB->>S: fetch POST /credentials (dadosCifradosB)
+    S-->>CB: tokenSessao B
+    CA->>S: CT2 POST /credentials (dadosCifradosA, Bearer tokenSessao A)
+    CB->>S: CT2 POST /credentials (dadosCifradosB, Bearer tokenSessao B)
     S->>DB: CT10 Tabela credencial (inserir A e B)
     DB-->>S: confirmações
     S-->>CA: credencialSalva
     S-->>CB: credencialSalva
-    CA-->>UA: exibe confirmação na tela
-    CB-->>UB: exibe confirmação na tela
+    CA-->>NA: credencialSalva
+    CB-->>NB: credencialSalva
+    NA-->>UA: exibe confirmação
+    NB-->>UB: exibe confirmação
 ```

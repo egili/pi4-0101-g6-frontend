@@ -1,25 +1,28 @@
 # Fluxo do E7: Gerador de senhas fortes
 
-**Feito quando (da Entrega 1):** O usuário escolhe as opções de geração na interface web e recebe uma senha forte que pode utilizar no cadastro de uma credencial.
+**Feito quando (da Entrega 1):** O usuário escolhe as opções de geração e recebe uma senha forte que pode utilizar no cadastro de uma credencial.
 
 ## Passos
 
-1. O Usuário clica no gerador de senhas na interface Web e escolhe as opções (tamanho, maiúsculas, minúsculas, números, símbolos).
-2. O Cliente Web utiliza a Web Crypto API (`window.crypto.getRandomValues`) para gerar a sequência pseudoaleatória segura.
-3. A senha gerada é exibida no campo correspondente da interface.
-4. O Usuário pode copiar a senha gerada com um clique ou aplicá-la diretamente no formulário de cadastro de credencial (fluxo E4).
+1. O Usuário escolhe as opções de geração (tamanho, maiúsculas, minúsculas, números, símbolos) no navegador (Front-end web) e clica em gerar.
+2. O navegador envia as opções ao Cliente (Back-end 2), que chama o Módulo de Criptografia para gerar a senha.
+3. O Módulo de Criptografia gera uma senha aleatória forte com as opções escolhidas.
+4. O Cliente devolve a senha ao navegador, que a exibe na tela.
+5. O Usuário pode copiar a senha e usá-la em um cadastro de credencial (fluxo E4).
 
 ## Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
     actor U as Usuário
-    participant C as Cliente Web
-    participant CM as Web Crypto API (Navegador)
+    participant N as Navegador (Front-end web)
+    participant C as Cliente (Back-end 2)
+    participant CM as Módulo de Criptografia (Back-end 2)
 
-    U->>C: escolhe opções de senha (tamanho 16, símbolos, etc.)
-    C->>CM: getRandomValues()
-    CM-->>C: bytes aleatórios seguros
-    C->>C: formata senha forte
-    C-->>U: exibe a senha gerada na interface web
+    U->>N: gerar senha (tamanho 16, símbolos)
+    N->>C: envia opções de geração
+    C->>CM: gerarSenhaForte(opções)
+    CM-->>C: senha gerada
+    C-->>N: senha gerada
+    N-->>U: exibe a senha na tela
 ```
