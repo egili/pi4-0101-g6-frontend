@@ -239,9 +239,161 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (btnConta) {
-    btnConta.addEventListener("click", () => {
-      alert("Nova conta — hard coded por enquanto.");
+  // --- Modal Nova Conta / Salvar Credencial (H05.3 / CT2) ---
+  const modalConta = document.getElementById("modal-conta");
+  const modalContaOverlay = document.getElementById("modal-conta-overlay");
+  const btnFecharModal = document.getElementById("btn-fechar-modal-conta");
+  const btnCancelarModal = document.getElementById("btn-cancelar-modal-conta");
+  const formNovaConta = document.getElementById("form-nova-conta");
+  const modalAlerta = document.getElementById("modal-conta-alerta");
+  const btnToggleSenhaModal = document.getElementById("btn-toggle-senha-modal");
+  const inputNovaSenha = document.getElementById("nova-conta-senha");
+  const btnSalvarConta = document.getElementById("btn-salvar-conta");
+
+  function exibirModalAlerta(msg, tipo) {
+    if (!modalAlerta) return;
+    modalAlerta.hidden = false;
+    modalAlerta.textContent = msg;
+    modalAlerta.className = `form-alerta form-alerta--${tipo}`;
+    modalAlerta.setAttribute("role", tipo === "erro" ? "alert" : "status");
+  }
+
+  function limparModalAlerta() {
+    if (!modalAlerta) return;
+    modalAlerta.hidden = true;
+    modalAlerta.textContent = "";
+    modalAlerta.className = "form-alerta";
+    modalAlerta.removeAttribute("role");
+  }
+
+  function abrirModalConta() {
+    if (!modalConta) return;
+    limparModalAlerta();
+    if (formNovaConta) formNovaConta.reset();
+    if (inputNovaSenha) inputNovaSenha.type = "password";
+    if (btnToggleSenhaModal) btnToggleSenhaModal.textContent = "MOSTRAR";
+    modalConta.hidden = false;
+    modalConta.setAttribute("aria-hidden", "false");
+    document.getElementById("nova-conta-servico")?.focus();
+  }
+
+  function fecharModalConta() {
+    if (!modalConta) return;
+    modalConta.hidden = true;
+    modalConta.setAttribute("aria-hidden", "true");
+    limparModalAlerta();
+  }
+
+  if (btnConta) btnConta.addEventListener("click", abrirModalConta);
+  if (btnFecharModal) btnFecharModal.addEventListener("click", fecharModalConta);
+  if (btnCancelarModal) btnCancelarModal.addEventListener("click", fecharModalConta);
+  if (modalContaOverlay) modalContaOverlay.addEventListener("click", fecharModalConta);
+
+  if (btnToggleSenhaModal && inputNovaSenha) {
+    btnToggleSenhaModal.addEventListener("click", () => {
+      const isPassword = inputNovaSenha.type === "password";
+      inputNovaSenha.type = isPassword ? "text" : "password";
+      btnToggleSenhaModal.textContent = isPassword ? "OCULTAR" : "MOSTRAR";
+    });
+  }
+
+  function adicionarContaNaArvore(novaConta) {
+    data[novaConta.id] = novaConta;
+
+    const navTree = document.querySelector(".tree");
+    if (!navTree) return;
+
+    let targetContainer = navTree.querySelector(".tree-group");
+    if (!targetContainer) {
+      targetContainer = navTree;
+    }
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "tree-item tree-item--child";
+    button.setAttribute("data-id", novaConta.id);
+    button.setAttribute("data-type", "conta");
+    button.innerHTML = `<span class="tree-item__label">${novaConta.nome} (${novaConta.login})</span>`;
+
+    button.addEventListener("click", () => {
+      selectItem(button);
+    });
+
+    targetContainer.appendChild(button);
+  }
+
+  if (formNovaConta) {
+    formNovaConta.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      limparModalAlerta();
+
+      const servico = document.getElementById("nova-conta-servico")?.value?.trim();
+      const usuarioServico = document.getElementById("nova-conta-usuario")?.value?.trim();
+      const senha = inputNovaSenha?.value;
+
+      if (!servico || !usuarioServico || !senha) {
+        exibirModalAlerta("Preencha todos os campos da credencial.", "erro");
+        return;
+      }
+
+      if (btnSalvarConta) {
+        btnSalvarConta.disabled = true;
+        btnSalvarConta.textContent = "Cifrando e salvando…";
+      }
+
+      try {
+        if (window.HttpClient) {
+          const conexao = await HttpClient.testarConexoes();
+          if (!conexao.online) {
+            exibirModalAlerta(
+              (conexao.mensagem || "Sem resposta dos servidores.") +
+                " Não foi possível salvar. Teste a conexão.",
+              "erro"
+            );
+            return;
+          }
+        }
+
+        // Executa a cifragem local e salvamento (CT2 / H05.3)
+        const resultado = await ApiCliente.executarSalvarCredencial({
+          servico,
+          usuarioServico,
+          senha,
+        });
+
+        const idGerado = resultado.credencialId;
+        const msgSucesso = `${resultado.mensagem} (ID: ${idGerado})`;
+        exibirModalAlerta(msgSucesso, "sucesso");
+
+        adicionarContaNaArvore({
+          id: `conta-${idGerado}`,
+          type: "conta",
+          nome: servico,
+          login: usuarioServico,
+          email: usuarioServico,
+          senha: senha,
+          notas: `Salva com sucesso no cofre digital. ID: ${idGerado}`,
+        });
+
+        formNovaConta.reset();
+        inputNovaSenha.type = "password";
+        if (btnToggleSenhaModal) btnToggleSenhaModal.textContent = "MOSTRAR";
+
+        setTimeout(() => {
+          fecharModalConta();
+        }, 1500);
+
+      } catch (erro) {
+        const msg = window.ApiCliente && ApiCliente.mensagemErro
+          ? ApiCliente.mensagemErro(erro.codigo, erro.message)
+          : erro.message || "Erro ao salvar credencial.";
+        exibirModalAlerta(msg, "erro");
+      } finally {
+        if (btnSalvarConta) {
+          btnSalvarConta.disabled = false;
+          btnSalvarConta.textContent = "Salvar Credencial";
+        }
+      }
     });
   }
 

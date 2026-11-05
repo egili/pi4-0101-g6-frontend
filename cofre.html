@@ -237,6 +237,68 @@
         </div>
       </div>
     </aside>
+
+    <!-- Modal Interativo: Salvar Credencial (+Conta) -->
+    <div class="modal" id="modal-conta" hidden aria-hidden="true" role="dialog" aria-labelledby="modal-conta-title">
+      <div class="modal__overlay" id="modal-conta-overlay"></div>
+      <div class="modal__dialog">
+        <header class="modal__header">
+          <h2 id="modal-conta-title" class="modal__title">Nova Credencial Cifrada</h2>
+          <button type="button" class="menu-btn menu-btn--close" id="btn-fechar-modal-conta" aria-label="Fechar janela">
+            <span class="menu-btn__x" aria-hidden="true"></span>
+          </button>
+        </header>
+
+        <div id="modal-conta-alerta" class="form-alerta" hidden></div>
+
+        <form class="modal__form" id="form-nova-conta" novalidate>
+          <div class="field">
+            <label for="nova-conta-servico">Serviço (ex: Gmail, GitHub)</label>
+            <input
+              type="text"
+              id="nova-conta-servico"
+              name="servico"
+              placeholder="ex: Gmail"
+              required
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="field">
+            <label for="nova-conta-usuario">Usuário / Login do serviço</label>
+            <input
+              type="text"
+              id="nova-conta-usuario"
+              name="usuarioServico"
+              placeholder="ex: meu_email@gmail.com"
+              required
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="field">
+            <label for="nova-conta-senha">Senha a ser salva</label>
+            <div class="detail-field__row">
+              <input
+                type="password"
+                id="nova-conta-senha"
+                name="senha"
+                placeholder="••••••••••••"
+                required
+                autocomplete="new-password"
+              />
+              <button type="button" class="btn-ghost" id="btn-toggle-senha-modal">MOSTRAR</button>
+            </div>
+            <small class="field-hint">A digitação é mascarada. A cifragem ocorre localmente no cliente antes de qualquer envio ao servidor.</small>
+          </div>
+
+          <div class="modal__actions">
+            <button type="button" class="btn btn--secondary" id="btn-cancelar-modal-conta">Cancelar</button>
+            <button type="submit" class="btn" id="btn-salvar-conta">Salvar Credencial</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <script src="assets/js/http.js"></script>

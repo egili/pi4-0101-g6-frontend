@@ -1,0 +1,14 @@
+{
+  "name": "pi4-0101-g6-frontend",
+  "version": "1.0.0",
+  "description": "Front-end e Cliente do Cofre de Senhas Criptografadas",
+  "scripts": {
+    "salvar-credencial": "node scripts/salvarCredencial.js",
+    "test": "npm --prefix config test",
+    "start": "npm --prefix config start"
+  },
+  "keywords": ["cofre", "senhas", "zero-trust", "cliente"],
+  "author": "Guilherme Heron",
+  "license": "UNLICENSED"
+}
+
