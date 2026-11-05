@@ -1,17 +1,17 @@
 # Fluxo do E1: Servidor multiconexão
 
-**Feito quando (da Entrega 1):** Dois usuários abrem o sistema ao mesmo tempo, mandam comandos e o servidor responde aos dois de forma paralela sem travar.
+**Feito quando (da Entrega 1):** Dois usuários fazem requisições HTTP ao mesmo tempo e o servidor responde aos dois de forma paralela sem travar.
 
 ## Passos
 
-1. O Usuário A abre o Cliente e se autentica.
-2. O Usuário B abre o Cliente em outra máquina e se autentica.
-3. O Servidor aceita as duas conexões Socket simultaneamente.
-4. O Usuário A envia um comando (ex: cadastrar credencial).
+1. O Usuário A abre o sistema no navegador (Front-end web) e se autentica pelo Cliente (Back-end 2).
+2. O Usuário B abre o sistema no seu navegador e se autentica pelo seu Cliente.
+3. O Servidor (Back-end 1) aceita as duas conexões HTTP simultaneamente.
+4. O Usuário A envia uma requisição pelo navegador (ex: cadastrar credencial), e o Cliente a repassa ao Servidor via requisição HTTP (REST).
 5. O Servidor processa em uma thread separada, sem bloquear a conexão do Usuário B.
-6. O Usuário B envia um comando em paralelo.
+6. O Usuário B envia uma requisição em paralelo.
 7. O Servidor responde aos dois de forma independente.
-8. Os dois Clientes exibem os resultados ao mesmo tempo.
+8. Os dois navegadores exibem os resultados ao mesmo tempo.
 
 ## Diagrama de sequência
 
@@ -19,26 +19,33 @@
 sequenceDiagram
     actor UA as Usuário A
     actor UB as Usuário B
-    participant CA as Cliente (A)
-    participant CB as Cliente (B)
-    participant S as Servidor
+    participant NA as Navegador A (Front-end web)
+    participant NB as Navegador B (Front-end web)
+    participant CA as Cliente A (Back-end 2)
+    participant CB as Cliente B (Back-end 2)
+    participant S as Servidor (Back-end 1)
     participant DB as Banco de Dados
 
-    UA->>CA: abre o cliente
-    UB->>CB: abre o cliente
-    CA->>S: CT3 autenticarUsuario(usuarioA)
+    UA->>NA: abre o sistema
+    UB->>NB: abre o sistema
+    NA->>CA: informa usuário e senha mestra
+    CA->>S: GET /salt/{username} e POST /login (usuário A)
     S->>DB: CT9 Tabela usuario (buscar)
     DB-->>S: dados do usuário A
-    S-->>CA: CT3 sessão iniciada
-    CB->>S: CT3 autenticarUsuario(usuarioB)
+    S-->>CA: tokenSessao A
+    NB->>CB: informa usuário e senha mestra
+    CB->>S: GET /salt/{username} e POST /login (usuário B)
     S->>DB: CT9 Tabela usuario (buscar)
     DB-->>S: dados do usuário B
-    S-->>CB: CT3 sessão iniciada
-    CA->>S: CT2 salvarCredencial(dadosCifradosA)
-    CB->>S: CT2 salvarCredencial(dadosCifradosB)
+    S-->>CB: tokenSessao B
+    CA->>S: CT2 POST /credentials (dadosCifradosA, Bearer tokenSessao A)
+    CB->>S: CT2 POST /credentials (dadosCifradosB, Bearer tokenSessao B)
     S->>DB: CT10 Tabela credencial (inserir A e B)
     DB-->>S: confirmações
     S-->>CA: credencialSalva
     S-->>CB: credencialSalva
-    CA-->>UA: exibe confirmação
-    CB-->>UB: exibe confirmação
+    CA-->>NA: credencialSalva
+    CB-->>NB: credencialSalva
+    NA-->>UA: exibe confirmação
+    NB-->>UB: exibe confirmação
+```
