@@ -1,35 +1,35 @@
 # Fluxo do E3: Autenticação
 
-**Feito quando (da Entrega 1):** O usuário informa seu usuário e senha mestra corretos e vê o menu do cofre; se errar, vê a mensagem de erro.
+**Feito quando (da Entrega 1):** O usuário informa seu usuário e senha mestra corretos e vê o cofre de credenciais na interface web; se errar, vê a mensagem de erro.
 
 ## Passos
 
-1. O Usuário informa `username` e `senhaMestra` na interface do Cliente CLI.
-2. **Obtenção do Salt (Fase 1 do CT3):** O Cliente envia o comando `GET_SALT` com o `username` ao Servidor via Socket.
+1. O Usuário informa `username` e `senhaMestra` no formulário de login da interface Web.
+2. **Obtenção do Salt (Fase 1 do CT3):** O Cliente Web realiza uma requisição ao Servidor via API Fetch para obter o `salt` do usuário.
 3. O Servidor consulta a tabela `usuario` no Banco de Dados para obter o `salt` cadastrado.
-4. O Servidor devolve o `salt` ao Cliente (ou erro `USUARIO_NAO_ENCONTRADO`).
-5. **Derivação de Chaves Separadas (Zero-Trust):** De posse do `salt`, o Cliente aciona o Módulo de Criptografia:
-   - Deriva a **Chave de Cifragem** (usada unicamente no processo do cliente para cifrar/decifrar credenciais, mantida apenas na memória volátil).
+4. O Servidor devolve o `salt` ao Cliente Web (ou erro `USUARIO_NAO_ENCONTRADO`).
+5. **Derivação de Chaves Separadas (Zero-Trust):** De posse do `salt`, o Cliente Web aciona a Web Crypto API no navegador:
+   - Deriva a **Chave de Cifragem** (usada unicamente no navegador para cifrar/decifrar credenciais, mantida apenas na memória volátil).
    - Deriva o **Hash de Autenticação** (`senhaMestraHash`), obtido de forma unidirecional e isolada da chave de cifragem.
-6. **Validação da Autenticação (Fase 2 do CT3):** O Cliente envia o comando `AUTH` contendo `username` e `senhaMestraHash` ao Servidor.
+6. **Validação da Autenticação (Fase 2 do CT3):** O Cliente Web envia a requisição de login contendo `username` e `senhaMestraHash` ao Servidor via API Fetch.
 7. O Servidor compara o hash recebido com o armazenado na tabela `usuario`.
-8. Se as credenciais forem válidas, o Servidor gera e devolve um `tokenSessao` e o `usuarioId`.
+8. Se as credenciais forem válidas, o Servidor gera e devolve um token JWT e o `usuarioId`.
 9. Se o hash não bater, o Servidor devolve o erro `SENHA_INCORRETA`.
-10. O Cliente armazena o `tokenSessao` e a `Chave de Cifragem` em memória e exibe o menu do cofre ao Usuário (ou exibe a mensagem de erro correspondente).
+10. O Cliente Web armazena o token JWT e a `Chave de Cifragem` em memória volátil e redireciona o Usuário para o cofre de senhas na interface Web (ou exibe a mensagem de erro correspondente).
 
 ## Diagrama de sequência
 
 ```mermaid
 sequenceDiagram
     actor U as Usuário
-    participant C as Cliente CLI
-    participant CM as Módulo de Criptografia
-    participant S as Servidor
+    participant C as Cliente Web
+    participant CM as Criptografia Local (Navegador)
+    participant S as Servidor Back-end 1
     participant DB as Banco de Dados
 
     U->>C: informa username e senhaMestra
     Note over C,S: Fase 1: Obtenção do Salt
-    C->>S: CT3 GET_SALT(username)
+    C->>S: fetch GET /usuarios/salt?username=...
     S->>DB: CT9 Tabela usuario (busca salt)
     DB-->>S: salt
     S-->>C: salt
@@ -41,9 +41,9 @@ sequenceDiagram
     CM-->>C: senhaMestraHash
 
     Note over C,S: Fase 2: Autenticação
-    C->>S: CT3 AUTH(username, senhaMestraHash)
+    C->>S: fetch POST /usuarios/login (username, senhaMestraHash)
     S->>DB: CT9 Tabela usuario (valida hash)
     DB-->>S: confirmação de match
-    S-->>C: CT3 usuarioId, tokenSessao
-    C-->>U: exibe menu principal do cofre
+    S-->>C: CT3 usuarioId, tokenSessao (JWT)
+    C-->>U: redireciona para o cofre na interface web
 ```

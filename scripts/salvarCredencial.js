@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Script CLI Interativo: Salvar Credencial (H05.3 / CT2)
+ * Script Utilitário: Salvar Credencial (H05.3 / CT2)
  *
  * Execução: node scripts/salvarCredencial.js
  *
