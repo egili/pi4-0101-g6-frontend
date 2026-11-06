@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnCloseTools = document.getElementById("btn-close-tools");
   const btnOpenTools = document.querySelectorAll(".btn-open-tools");
   const toolTabs = document.querySelectorAll(".tools-nav__btn");
-  const treeItems = document.querySelectorAll(".tree-item");
   const btnFavoritar = document.getElementById("btn-favoritar");
   const btnMostrarSenha = document.getElementById("btn-mostrar-senha");
   const contaSenha = document.getElementById("conta-senha");
@@ -22,31 +21,39 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnPasta = document.getElementById("btn-pasta");
   const btnConta = document.getElementById("btn-conta");
 
-  const data = {
-    "pasta-1": {
-      type: "pasta",
-      nome: "PASTA 1",
-      descricao: "Pasta geral para acessos do trabalho.",
-    },
-    "pasta-2": {
-      type: "pasta",
-      nome: "PASTA 2",
-      descricao: "Pasta com contas financeiras e bancos.",
-    },
-    "pasta-3": {
-      type: "pasta",
-      nome: "PASTA 3",
-      descricao: "Pasta de contas pessoais e acessos frequentes.",
-    },
-    "conta-exemplo": {
-      type: "conta",
-      nome: "Conta exemplo",
-      login: "usuario.exemplo",
-      email: "exemplo@email.com",
-      senha: "S3nhaF0rte!",
-      notas: "Conta de exemplo usada para demonstração do cofre.",
-    },
-  };
+  const credenciais = new Map();
+  let credencialAberta = null;
+  let pedidoSenha = 0;
+
+  function exibirCofreAlerta(msg, tipo) {
+    const alerta = document.getElementById("cofre-alerta");
+    if (!alerta) return;
+    if (!msg) {
+      alerta.hidden = true;
+      alerta.textContent = "";
+      alerta.className = "form-alerta";
+      alerta.removeAttribute("role");
+      return;
+    }
+    alerta.hidden = false;
+    alerta.textContent = msg;
+    alerta.className = tipo ? `form-alerta form-alerta--${tipo}` : "form-alerta";
+    alerta.setAttribute("role", tipo === "erro" ? "alert" : "status");
+  }
+
+  function textoErro(erro) {
+    if (window.ApiCliente && ApiCliente.mensagemErro) {
+      return ApiCliente.mensagemErro(erro && erro.codigo, erro && erro.message);
+    }
+    return (erro && erro.message) || "Erro ao falar com o servidor.";
+  }
+
+  function definirStatusLista(texto) {
+    const status = document.getElementById("lista-status");
+    if (!status) return;
+    status.hidden = !texto;
+    status.textContent = texto || "";
+  }
 
   function openTools() {
     vault.classList.add("is-tools-open");
@@ -81,34 +88,148 @@ document.addEventListener("DOMContentLoaded", () => {
     viewConta.hidden = isPasta;
   }
 
-  function selectItem(item) {
-    const id = item.dataset.id;
-    const entry = data[id];
-    if (!entry) return;
+  function renderLista() {
+    const nav = document.getElementById("lista-servicos");
+    if (!nav) return;
 
-    treeItems.forEach((el) => {
-      el.classList.remove("is-active");
-      el.removeAttribute("aria-current");
+    const termo = (document.getElementById("busca")?.value || "").trim().toLowerCase();
+    const itens = [...credenciais.values()].filter((cred) => {
+      if (!termo) return true;
+      const servico = String(cred.servico || "").toLowerCase();
+      const login = String(cred.usuarioServico || "").toLowerCase();
+      return servico.includes(termo) || login.includes(termo);
     });
 
-    item.classList.add("is-active");
-    item.setAttribute("aria-current", "true");
+    nav.replaceChildren();
 
-    showView(entry.type);
+    if (!itens.length) {
+      definirStatusLista(
+        credenciais.size
+          ? "Nenhum serviço encontrado."
+          : "Nenhuma credencial salva neste cofre."
+      );
+      return;
+    }
 
-    if (entry.type === "pasta") {
-      document.getElementById("pasta-nome").value = entry.nome;
-      document.getElementById("pasta-descricao").value = entry.descricao;
-    } else {
-      document.getElementById("conta-nome").value = entry.nome;
-      document.getElementById("conta-login").value = entry.login;
-      document.getElementById("conta-email").value = entry.email;
-      contaSenha.value = entry.senha;
-      contaSenha.type = "password";
+    definirStatusLista("");
+
+    itens.forEach((cred) => {
+      const id = String(cred.credencialId);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "tree-item";
+      button.dataset.id = id;
+      button.dataset.type = "conta";
+      if (credencialAberta === id) {
+        button.classList.add("is-active");
+        button.setAttribute("aria-current", "true");
+      }
+
+      const label = document.createElement("span");
+      label.className = "tree-item__label";
+      label.textContent = cred.servico || "Serviço";
+
+      if (cred.usuarioServico) {
+        const meta = document.createElement("span");
+        meta.className = "tree-item__meta";
+        meta.textContent = cred.usuarioServico;
+        label.appendChild(meta);
+      }
+
+      button.appendChild(label);
+      button.addEventListener("click", () => {
+        abrirCredencial(id);
+      });
+      nav.appendChild(button);
+    });
+  }
+
+  async function carregarServicos() {
+    exibirCofreAlerta("");
+    definirStatusLista("Carregando serviços…");
+
+    if (!window.ApiCliente) {
+      definirStatusLista("Não foi possível listar os serviços.");
+      exibirCofreAlerta("Cliente indisponível nesta página.", "erro");
+      return;
+    }
+
+    const sessao = ApiCliente.obterSessao();
+    if (!sessao.token) {
+      credenciais.clear();
+      renderLista();
+      definirStatusLista("Faça login para listar os serviços.");
+      exibirCofreAlerta(ApiCliente.mensagemErro("SESSAO_INVALIDA"), "erro");
+      return;
+    }
+
+    try {
+      const lista = await ApiCliente.listarCredenciais(sessao.token);
+      credenciais.clear();
+      lista.forEach((item) => {
+        if (item && item.credencialId != null) {
+          credenciais.set(String(item.credencialId), item);
+        }
+      });
+      renderLista();
+    } catch (erro) {
+      credenciais.clear();
+      const nav = document.getElementById("lista-servicos");
+      if (nav) nav.replaceChildren();
+      definirStatusLista("Não foi possível listar os serviços.");
+      exibirCofreAlerta(textoErro(erro), "erro");
+    }
+  }
+
+  async function abrirCredencial(id) {
+    const cred = credenciais.get(String(id));
+    if (!cred || !contaSenha) return;
+
+    const meuPedido = ++pedidoSenha;
+    credencialAberta = String(id);
+
+    document.querySelectorAll("#lista-servicos .tree-item").forEach((el) => {
+      const ativo = el.dataset.id === credencialAberta;
+      el.classList.toggle("is-active", ativo);
+      if (ativo) el.setAttribute("aria-current", "true");
+      else el.removeAttribute("aria-current");
+    });
+
+    showView("conta");
+    const titulo = document.getElementById("conta-titulo");
+    if (titulo) titulo.textContent = cred.servico || "Serviço";
+    document.getElementById("conta-nome").value = cred.servico || "";
+    document.getElementById("conta-login").value = cred.usuarioServico || "";
+    contaSenha.value = "";
+    contaSenha.type = "password";
+    if (btnMostrarSenha) {
       btnMostrarSenha.textContent = "MOSTRAR";
-      document.getElementById("conta-notas").value = entry.notas;
+      btnMostrarSenha.disabled = true;
+    }
+    if (btnFavoritar) {
       btnFavoritar.classList.remove("is-active");
       btnFavoritar.setAttribute("aria-pressed", "false");
+    }
+    exibirCofreAlerta("Decifrando senha…");
+
+    try {
+      const senha = await ApiCliente.decifrarSenha({
+        dadosCifrados: cred.dadosCifrados,
+        iv: cred.iv,
+      });
+      if (meuPedido !== pedidoSenha) return;
+      contaSenha.value = senha;
+      contaSenha.type = "text";
+      if (btnMostrarSenha) btnMostrarSenha.textContent = "OCULTAR";
+      exibirCofreAlerta("");
+    } catch (erro) {
+      if (meuPedido !== pedidoSenha) return;
+      contaSenha.value = "";
+      exibirCofreAlerta(textoErro(erro), "erro");
+    } finally {
+      if (meuPedido === pedidoSenha && btnMostrarSenha) {
+        btnMostrarSenha.disabled = false;
+      }
     }
   }
 
@@ -168,14 +289,10 @@ document.addEventListener("DOMContentLoaded", () => {
     tab.addEventListener("click", () => switchTool(tab.dataset.tool));
   });
 
-  treeItems.forEach((item) => {
-    item.addEventListener("click", () => {
-      if (item.dataset.type === "pasta") {
-        const group = item.closest(".tree-group");
-        if (group) group.classList.toggle("is-open");
-      }
-      selectItem(item);
-    });
+  document.getElementById("busca")?.addEventListener("input", renderLista);
+
+  document.getElementById("btn-bloquear")?.addEventListener("click", () => {
+    if (window.ApiCliente) ApiCliente.limparSessao();
   });
 
   document.querySelectorAll(".btn-copy").forEach((btn) => {
@@ -297,31 +414,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function adicionarContaNaArvore(novaConta) {
-    data[novaConta.id] = novaConta;
-
-    const navTree = document.querySelector(".tree");
-    if (!navTree) return;
-
-    let targetContainer = navTree.querySelector(".tree-group");
-    if (!targetContainer) {
-      targetContainer = navTree;
-    }
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "tree-item tree-item--child";
-    button.setAttribute("data-id", novaConta.id);
-    button.setAttribute("data-type", "conta");
-    button.innerHTML = `<span class="tree-item__label">${novaConta.nome} (${novaConta.login})</span>`;
-
-    button.addEventListener("click", () => {
-      selectItem(button);
-    });
-
-    targetContainer.appendChild(button);
-  }
-
   if (formNovaConta) {
     formNovaConta.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -364,16 +456,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const idGerado = resultado.credencialId;
         const msgSucesso = `${resultado.mensagem} (ID: ${idGerado})`;
         exibirModalAlerta(msgSucesso, "sucesso");
-
-        adicionarContaNaArvore({
-          id: `conta-${idGerado}`,
-          type: "conta",
-          nome: servico,
-          login: usuarioServico,
-          email: usuarioServico,
-          senha: senha,
-          notas: `Salva com sucesso no cofre digital. ID: ${idGerado}`,
-        });
+        await carregarServicos();
 
         formNovaConta.reset();
         inputNovaSenha.type = "password";
@@ -431,4 +514,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Gera uma senha inicial no painel
   generatePassword();
+  carregarServicos();
 });
