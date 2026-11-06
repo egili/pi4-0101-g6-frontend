@@ -61,6 +61,15 @@ document.addEventListener("DOMContentLoaded", () => {
         await new Promise((r) => setTimeout(r, 900));
       }
 
+      const resultado = await HttpClient.post(
+        "backend2",
+        "/api/login",
+        { username: usuario, senha },
+        { isWrite: false }
+      );
+      const data = HttpClient.exigirResposta(resultado, "Sem resposta do Cliente ao fazer login.");
+      ApiCliente.salvarSessao({ usuario: data.username, usuarioId: data.usuarioId });
+
       window.location.href = "cofre.html";
     } catch (erro) {
       exibirAlerta(
