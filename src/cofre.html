@@ -108,6 +108,11 @@
             </div>
           </div>
 
+          <div class="detail-actions">
+            <button type="button" class="btn btn--secondary" id="btn-editar-conta">EDITAR</button>
+            <button type="button" class="btn btn--secondary" id="btn-excluir-conta">EXCLUIR</button>
+          </div>
+
         </div>
       </div>
     </section>
@@ -259,6 +264,65 @@
       </div>
     </div>
   </div>
+
+    <!-- Modal: Editar Credencial (H08.2 / CT5) -->
+    <div class="modal" id="modal-editar" hidden aria-hidden="true" role="dialog" aria-labelledby="modal-editar-title">
+      <div class="modal__overlay" id="modal-editar-overlay"></div>
+      <div class="modal__dialog">
+        <header class="modal__header">
+          <h2 id="modal-editar-title" class="modal__title">Editar Credencial</h2>
+          <button type="button" class="menu-btn menu-btn--close" id="btn-fechar-modal-editar" aria-label="Fechar janela">
+            <span class="menu-btn__x" aria-hidden="true"></span>
+          </button>
+        </header>
+
+        <div id="modal-editar-alerta" class="form-alerta" hidden></div>
+
+        <form class="modal__form" id="form-editar-conta" novalidate>
+          <div class="field">
+            <label for="editar-servico">Serviço</label>
+            <input type="text" id="editar-servico" name="servico" required autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="editar-usuario">Usuário / Login do serviço</label>
+            <input type="text" id="editar-usuario" name="usuarioServico" required autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="editar-senha">Senha</label>
+            <div class="detail-field__row">
+              <input type="password" id="editar-senha" name="senha" required autocomplete="new-password" />
+              <button type="button" class="btn-ghost" id="btn-toggle-senha-editar">MOSTRAR</button>
+            </div>
+            <small class="field-hint">A senha é recifrada localmente com um IV novo antes do envio.</small>
+          </div>
+
+          <div class="modal__actions">
+            <button type="button" class="btn btn--secondary" id="btn-cancelar-editar">Cancelar</button>
+            <button type="submit" class="btn" id="btn-salvar-editar">Salvar alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Confirmar exclusão (H08.2 / CT6) -->
+    <div class="modal" id="modal-excluir" hidden aria-hidden="true" role="dialog" aria-labelledby="modal-excluir-title">
+      <div class="modal__overlay" id="modal-excluir-overlay"></div>
+      <div class="modal__dialog">
+        <header class="modal__header">
+          <h2 id="modal-excluir-title" class="modal__title">Excluir credencial</h2>
+        </header>
+
+        <p class="modal__texto">Tem certeza? A credencial será apagada do cofre e não poderá ser recuperada.</p>
+        <div id="modal-excluir-alerta" class="form-alerta" hidden></div>
+
+        <div class="modal__actions">
+          <button type="button" class="btn btn--secondary" id="btn-cancelar-excluir">Cancelar</button>
+          <button type="button" class="btn" id="btn-confirmar-excluir">Excluir</button>
+        </div>
+      </div>
+    </div>
 
   <script src="assets/js/http.js"></script>
   <script src="assets/js/api.js"></script>

@@ -511,6 +511,140 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- Editar e excluir credencial (H08.2 / CT5 e CT6, card 841) ---
+  const btnEditarConta = document.getElementById("btn-editar-conta");
+  const btnExcluirConta = document.getElementById("btn-excluir-conta");
+
+  const modalEditar = document.getElementById("modal-editar");
+  const modalEditarOverlay = document.getElementById("modal-editar-overlay");
+  const btnFecharModalEditar = document.getElementById("btn-fechar-modal-editar");
+  const btnCancelarEditar = document.getElementById("btn-cancelar-editar");
+  const btnToggleSenhaEditar = document.getElementById("btn-toggle-senha-editar");
+  const formEditarConta = document.getElementById("form-editar-conta");
+  const inputEditarSenha = document.getElementById("editar-senha");
+  const modalEditarAlerta = document.getElementById("modal-editar-alerta");
+  const btnSalvarEditar = document.getElementById("btn-salvar-editar");
+
+  const modalExcluir = document.getElementById("modal-excluir");
+  const modalExcluirOverlay = document.getElementById("modal-excluir-overlay");
+  const btnCancelarExcluir = document.getElementById("btn-cancelar-excluir");
+  const btnConfirmarExcluir = document.getElementById("btn-confirmar-excluir");
+  const modalExcluirAlerta = document.getElementById("modal-excluir-alerta");
+
+  function mostrarModal(modal) {
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function ocultarModal(modal) {
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  function mostrarAlertaModal(alerta, msg, tipo) {
+    alerta.hidden = false;
+    alerta.textContent = msg;
+    alerta.className = `form-alerta form-alerta--${tipo}`;
+    alerta.setAttribute("role", tipo === "erro" ? "alert" : "status");
+  }
+
+  if (btnEditarConta) {
+    btnEditarConta.addEventListener("click", () => {
+      const cred = credenciais.get(credencialAberta);
+      if (!cred || !contaSenha.value) {
+        exibirCofreAlerta("Aguarde a senha ser decifrada antes de editar.", "erro");
+        return;
+      }
+      document.getElementById("editar-servico").value = cred.servico || "";
+      document.getElementById("editar-usuario").value = cred.usuarioServico || "";
+      inputEditarSenha.value = contaSenha.value;
+      inputEditarSenha.type = "password";
+      if (btnToggleSenhaEditar) btnToggleSenhaEditar.textContent = "MOSTRAR";
+      modalEditarAlerta.hidden = true;
+      mostrarModal(modalEditar);
+    });
+  }
+
+  [btnFecharModalEditar, btnCancelarEditar, modalEditarOverlay].forEach((el) => {
+    if (el) el.addEventListener("click", () => ocultarModal(modalEditar));
+  });
+
+  if (btnToggleSenhaEditar && inputEditarSenha) {
+    btnToggleSenhaEditar.addEventListener("click", () => {
+      const isPassword = inputEditarSenha.type === "password";
+      inputEditarSenha.type = isPassword ? "text" : "password";
+      btnToggleSenhaEditar.textContent = isPassword ? "OCULTAR" : "MOSTRAR";
+    });
+  }
+
+  if (formEditarConta) {
+    formEditarConta.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const id = credencialAberta;
+      const servico = document.getElementById("editar-servico").value.trim();
+      const usuarioServico = document.getElementById("editar-usuario").value.trim();
+      const senha = inputEditarSenha.value;
+
+      if (!servico || !usuarioServico || !senha) {
+        mostrarAlertaModal(modalEditarAlerta, "Preencha todos os campos da credencial.", "erro");
+        return;
+      }
+
+      btnSalvarEditar.disabled = true;
+      btnSalvarEditar.textContent = "Cifrando e salvando…";
+      try {
+        await ApiCliente.editarCredencial({ id, servico, usuarioServico, senha });
+        ocultarModal(modalEditar);
+        await carregarServicos();
+        await abrirCredencial(id);
+        exibirCofreAlerta("Credencial atualizada.", "sucesso");
+      } catch (erro) {
+        mostrarAlertaModal(
+          modalEditarAlerta,
+          ApiCliente.mensagemErro(erro.codigo, erro.message),
+          "erro"
+        );
+      } finally {
+        btnSalvarEditar.disabled = false;
+        btnSalvarEditar.textContent = "Salvar alterações";
+      }
+    });
+  }
+
+  if (btnExcluirConta) {
+    btnExcluirConta.addEventListener("click", () => {
+      modalExcluirAlerta.hidden = true;
+      mostrarModal(modalExcluir);
+    });
+  }
+
+  [btnCancelarExcluir, modalExcluirOverlay].forEach((el) => {
+    if (el) el.addEventListener("click", () => ocultarModal(modalExcluir));
+  });
+
+  if (btnConfirmarExcluir) {
+    btnConfirmarExcluir.addEventListener("click", async () => {
+      const id = credencialAberta;
+      btnConfirmarExcluir.disabled = true;
+      try {
+        await ApiCliente.excluirCredencial({ id });
+        ocultarModal(modalExcluir);
+        credencialAberta = null;
+        showView("pasta");
+        await carregarServicos();
+        exibirCofreAlerta("Credencial excluída.", "sucesso");
+      } catch (erro) {
+        mostrarAlertaModal(
+          modalExcluirAlerta,
+          ApiCliente.mensagemErro(erro.codigo, erro.message),
+          "erro"
+        );
+      } finally {
+        btnConfirmarExcluir.disabled = false;
+      }
+    });
+  }
+
   let jaAvisouQueda = false;
 
   function avisarQuedaEPedirLogin(status) {
