@@ -34,40 +34,22 @@
           <input
             type="search"
             id="busca"
-            placeholder="Buscar pasta, conta login ou email"
+            placeholder="Buscar serviço ou login"
           />
         </label>
       </div>
 
-      <nav class="tree" aria-label="Pastas e contas">
-        <button type="button" class="tree-item" data-id="pasta-1" data-type="pasta">
-          <span class="tree-item__caret">›</span>
-          <span class="tree-item__label">PASTA 1</span>
-        </button>
+      <div id="cofre-alerta" class="form-alerta" hidden></div>
+      <p class="lista-status" id="lista-status" hidden></p>
 
-        <button type="button" class="tree-item" data-id="pasta-2" data-type="pasta">
-          <span class="tree-item__caret">›</span>
-          <span class="tree-item__label">PASTA 2</span>
-        </button>
-
-        <div class="tree-group is-open">
-          <button type="button" class="tree-item is-active" data-id="pasta-3" data-type="pasta" aria-current="true">
-            <span class="tree-item__caret">›</span>
-            <span class="tree-item__label">PASTA 3</span>
-          </button>
-
-          <button type="button" class="tree-item tree-item--child" data-id="conta-exemplo" data-type="conta">
-            <span class="tree-item__label">Conta exemplo</span>
-          </button>
-        </div>
-      </nav>
+      <nav class="tree" id="lista-servicos" aria-label="Serviços"></nav>
     </aside>
 
     <section class="vault-detail" aria-labelledby="detail-title">
       <!-- View: Pasta -->
       <div class="view view--pasta is-visible" id="view-pasta">
         <header class="vault-detail__header">
-          <h2 id="detail-title" class="vault-detail__title">Pasta</h2>
+          <h2 id="detail-title" class="vault-detail__title">Cofre</h2>
           <button type="button" class="menu-btn btn-open-tools" aria-label="Abrir ferramentas">
             <span></span>
             <span></span>
@@ -76,25 +58,14 @@
         </header>
 
         <div class="vault-detail__body">
-          <div class="detail-field">
-            <label for="pasta-nome">NOME:</label>
-            <div class="detail-field__row">
-              <input type="text" id="pasta-nome" value="PASTA 3" readonly />
-              <button type="button" class="btn-copy" data-copy-target="pasta-nome">COPIAR</button>
-            </div>
-          </div>
-
-          <div class="detail-field detail-field--stack">
-            <label for="pasta-descricao">Descrição:</label>
-            <textarea id="pasta-descricao" rows="8" readonly>Pasta de contas pessoais e acessos frequentes.</textarea>
-          </div>
+          <p class="lista-status" id="cofre-vazio">Selecione um serviço para ver a senha em texto claro.</p>
         </div>
       </div>
 
       <!-- View: Conta -->
       <div class="view view--conta" id="view-conta" hidden>
         <header class="vault-detail__header">
-          <h2 class="vault-detail__title">Conta</h2>
+          <h2 class="vault-detail__title" id="conta-titulo">Serviço</h2>
           <div class="vault-detail__header-actions">
             <button type="button" class="btn-fav" id="btn-favoritar" aria-pressed="false">
               <span aria-hidden="true">★</span> FAVORITAR
@@ -111,7 +82,7 @@
           <div class="detail-field">
             <label for="conta-nome">NOME:</label>
             <div class="detail-field__row">
-              <input type="text" id="conta-nome" value="Conta exemplo" readonly />
+              <input type="text" id="conta-nome" value="" readonly />
               <button type="button" class="btn-copy" data-copy-target="conta-nome">COPIAR</button>
             </div>
           </div>
@@ -122,33 +93,21 @@
             <div class="detail-field">
               <label for="conta-login">LOGIN:</label>
               <div class="detail-field__row">
-                <input type="text" id="conta-login" value="usuario.exemplo" readonly />
+                <input type="text" id="conta-login" value="" readonly />
                 <button type="button" class="btn-copy" data-copy-target="conta-login">COPIAR</button>
-              </div>
-            </div>
-
-            <div class="detail-field">
-              <label for="conta-email">EMAIL:</label>
-              <div class="detail-field__row">
-                <input type="email" id="conta-email" value="exemplo@email.com" readonly />
-                <button type="button" class="btn-copy" data-copy-target="conta-email">COPIAR</button>
               </div>
             </div>
 
             <div class="detail-field">
               <label for="conta-senha">SENHA:</label>
               <div class="detail-field__row">
-                <input type="password" id="conta-senha" value="S3nhaF0rte!" readonly />
+                <input type="password" id="conta-senha" value="" readonly />
                 <button type="button" class="btn-ghost" id="btn-mostrar-senha">MOSTRAR</button>
                 <button type="button" class="btn-copy" data-copy-target="conta-senha">COPIAR</button>
               </div>
             </div>
           </div>
 
-          <div class="detail-field detail-field--stack">
-            <label for="conta-notas">Notas:</label>
-            <textarea id="conta-notas" rows="5" readonly>Conta de exemplo usada para demonstração do cofre.</textarea>
-          </div>
         </div>
       </div>
     </section>

@@ -1,6 +1,6 @@
 /**
  * APIs de domínio do Cliente sobre a camada HttpClient (Fetch).
- * Implementa os contratos CT1 (cadastro) e CT2 (salvar credencial com cifragem local).
+ * Implementa os contratos CT1 (cadastro), CT2 (salvar credencial) e CT4 (listar e revelar).
  */
 (function (global) {
   const STORAGE_TOKEN = "cofre:token";
@@ -16,6 +16,7 @@
     SESSAO_INVALIDA: "Sessão inválida ou expirada. Faça login novamente.",
     USUARIO_NAO_ENCONTRADO: "Usuário não encontrado.",
     DADOS_INVALIDOS: "Dados inválidos. Verifique os campos da credencial.",
+    FALHA_DECIFRAGEM: "Não foi possível decifrar a senha deste serviço.",
     // Gerais
     ERRO_CONEXAO: "Falha de conexão com o servidor.",
     ERRO_BANCO: "Erro ao salvar no banco de dados.",
@@ -310,6 +311,94 @@
     };
   }
 
+  /**
+   * Back-end 1 / CT4: lista as credenciais cifradas do usuário da sessão.
+   * A senha em claro não vem nesta resposta.
+   *
+   * @param {string} [token]
+   * @returns {Promise<Array<{credencialId: number, servico: string, usuarioServico: string, dadosCifrados: string, iv: string}>>}
+   */
+  async function listarCredenciais(token) {
+    const tokenAtivo = token || obterSessao().token;
+    if (!tokenAtivo) {
+      throw HttpClient.criarErroRede(
+        "SESSAO_INVALIDA",
+        "Sessão inválida ou expirada. Faça login novamente."
+      );
+    }
+
+    const resultado = await HttpClient.get("backend1", "/credentials", {
+      headers: { Authorization: `Bearer ${tokenAtivo}` },
+      requireBody: true,
+      emptyMessage: "Listagem sem resposta do servidor.",
+    });
+
+    const data = HttpClient.exigirResposta(
+      resultado,
+      "Listagem sem resposta do Back-end 1."
+    );
+
+    if (!Array.isArray(data)) {
+      throw HttpClient.criarErroRede(
+        "SEM_RESPOSTA",
+        "Listagem sem lista de credenciais."
+      );
+    }
+
+    return data;
+  }
+
+  /**
+   * Back-end 2: decifra o blob da credencial com a chave da sessão.
+   * A chave não vai para o Back-end 1.
+   *
+   * @param {Object} params
+   * @param {string} params.dadosCifrados
+   * @param {string} params.iv
+   * @param {string} [params.chaveCifra]
+   * @returns {Promise<string>} senha em texto claro
+   */
+  async function decifrarSenha({ dadosCifrados, iv, chaveCifra }) {
+    const chave = chaveCifra || obterSessao().chaveCifra;
+    if (!dadosCifrados || !iv) {
+      throw HttpClient.criarErroRede(
+        "DADOS_INVALIDOS",
+        "Esta credencial não tem blob para decifrar."
+      );
+    }
+    if (!chave) {
+      throw HttpClient.criarErroRede(
+        "SESSAO_INVALIDA",
+        "Sessão sem chave de cifra. Faça login novamente."
+      );
+    }
+
+    const resultado = await HttpClient.post(
+      "backend2",
+      "/api/crypto/decifrar",
+      { dadosCifrados, iv, chaveCifra: chave },
+      {
+        isWrite: false,
+        requireBody: true,
+        emptyMessage: "Decifragem sem resposta do Back-end 2.",
+      }
+    );
+
+    const data = HttpClient.exigirResposta(
+      resultado,
+      "Decifragem sem resposta do Back-end 2."
+    );
+
+    if (!data || typeof data.senha !== "string") {
+      throw HttpClient.criarErroRede(
+        "SEM_RESPOSTA",
+        "Back-end 2 não devolveu a senha."
+      );
+    }
+
+    return data.senha;
+  }
+
   global.ApiCliente = {
     mensagemErro,
     salvarSessao,
@@ -320,6 +409,8 @@
     cadastrarUsuario,
     salvarCredencial,
     executarSalvarCredencial,
+    listarCredenciais,
+    decifrarSenha,
   };
 
   // Compatibilidade com scripts globais
@@ -329,4 +420,6 @@
   global.salvarCredencial = salvarCredencial;
   global.cifrarLocalmente = cifrarLocalmente;
   global.executarSalvarCredencial = executarSalvarCredencial;
+  global.listarCredenciais = listarCredenciais;
+  global.decifrarSenha = decifrarSenha;
 })(window);

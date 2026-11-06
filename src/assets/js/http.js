@@ -21,7 +21,10 @@
       "http://localhost:8081",
   };
 
-  const PATH_TESTE = "/api/health";
+  const PATH_TESTE = {
+    backend1: "/ping",
+    backend2: "/status",
+  };
 
   const status = {
     online: null,
@@ -153,6 +156,9 @@
         "SEM_RESPOSTA",
         "CREDENCIAL_INVALIDA",
         "TOKEN_INVALIDO",
+        "SESSAO_INVALIDA",
+        "DADOS_INVALIDOS",
+        "FALHA_DECIFRAGEM",
       ];
 
       if (resultado.ok === false || (codigo && codigosErro.includes(String(codigo)))) {
@@ -297,10 +303,18 @@
    * Requisição de teste isolada para um backend (health-check).
    * Retorna { ok, alvo, url, erro? } — nunca lança.
    */
+  function pathTeste(alvo) {
+    const key = String(alvo || "").toLowerCase();
+    if (key === "backend1" || key === "be1" || key === "1") return PATH_TESTE.backend1;
+    if (key === "backend2" || key === "be2" || key === "2") return PATH_TESTE.backend2;
+    throw criarErroRede("ERRO_CONEXAO", `Alvo de API desconhecido: ${alvo}`);
+  }
+
   async function enviarRequisicaoTeste(alvo) {
-    const url = `${baseUrl(alvo).replace(/\/$/, "")}${PATH_TESTE}`;
+    const caminho = pathTeste(alvo);
+    const url = `${baseUrl(alvo).replace(/\/$/, "")}${caminho}`;
     try {
-      const data = await get(alvo, PATH_TESTE, {
+      const data = await get(alvo, caminho, {
         timeoutMs: 5000,
         isWrite: false,
       });
