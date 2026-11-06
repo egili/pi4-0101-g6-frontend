@@ -299,6 +299,21 @@
     });
   }
 
+  function put(alvo, path, body, options) {
+    return request(alvo, path, {
+      ...(options || {}),
+      method: "PUT",
+      body,
+    });
+  }
+
+  function del(alvo, path, options) {
+    return request(alvo, path, {
+      ...(options || {}),
+      method: "DELETE",
+    });
+  }
+
   /**
    * Requisição de teste isolada para um backend (health-check).
    * Retorna { ok, alvo, url, erro? } — nunca lança.
@@ -424,6 +439,8 @@
     PATH_TESTE,
     get,
     post,
+    put,
+    del,
     request,
     enviarRequisicaoTeste,
     testarConexoes,

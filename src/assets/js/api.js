@@ -12,6 +12,9 @@
     USUARIO_JA_EXISTE: "Este nome de usuário já existe.",
     CAMPO_OBRIGATORIO_AUSENTE: "Preencha todos os campos obrigatórios.",
     SESSAO_INVALIDA: "Sessão inválida ou expirada. Faça login novamente.",
+    // Editar e excluir (H08.2, card 841)
+    CREDENCIAL_NAO_ENCONTRADA: "Credencial não encontrada.",
+    ACESSO_NEGADO: "Você não tem permissão para esta credencial.",
     USUARIO_NAO_ENCONTRADO: "Usuário não encontrado.",
     SENHA_INCORRETA: "Usuário ou senha mestra incorretos.",
     DADOS_INVALIDOS: "Dados inválidos. Verifique os campos da credencial.",
@@ -261,6 +264,55 @@
     return HttpClient.exigirResposta(resultado, "Sem resposta do Back-end 1 ao exportar o backup.");
   }
 
+  /**
+   * Back-end 1 / CT5: recifra a senha com IV novo e envia os quatro campos no PUT.
+   * Não gera chave aleatória: sem chave da sessão, falha em vez de cifrar com outra chave.
+   */
+  async function editarCredencial({ id, servico, usuarioServico, senha }) {
+    const { token, chaveCifra } = obterSessao();
+    if (!token || !chaveCifra) {
+      throw HttpClient.criarErroRede("SESSAO_INVALIDA", "Sessão inválida ou expirada. Faça login novamente.");
+    }
+    if (!id || !servico || !usuarioServico || !senha) {
+      throw HttpClient.criarErroRede("DADOS_INVALIDOS", "Preencha todos os campos da credencial.");
+    }
+
+    const { dadosCifrados, iv } = await cifrarLocalmente(senha, chaveCifra);
+
+    const resultado = await HttpClient.put(
+      "backend1",
+      `/credentials/${encodeURIComponent(id)}`,
+      { servico, usuarioServico, dadosCifrados, iv },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        isWrite: true,
+        writeId: `edit_cred:${id}`,
+        requireBody: true,
+        emptyMessage: "Edição sem resposta do servidor. Nada foi confirmado como sucesso.",
+      }
+    );
+
+    return HttpClient.exigirResposta(resultado, "Edição sem resposta do Back-end 1.");
+  }
+
+  /** Back-end 1 / CT6: exclui a credencial do usuário logado. */
+  async function excluirCredencial({ id }) {
+    const { token } = obterSessao();
+    if (!token) {
+      throw HttpClient.criarErroRede("SESSAO_INVALIDA", "Sessão inválida ou expirada. Faça login novamente.");
+    }
+
+    const resultado = await HttpClient.del("backend1", `/credentials/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      isWrite: true,
+      writeId: `del_cred:${id}`,
+      requireBody: true,
+      emptyMessage: "Exclusão sem resposta do servidor. Nada foi confirmado como sucesso.",
+    });
+
+    return HttpClient.exigirResposta(resultado, "Exclusão sem resposta do Back-end 1.");
+  }
+
   global.ApiCliente = {
     mensagemErro,
     salvarSessao,
@@ -275,6 +327,8 @@
     listarCredenciais,
     decifrarSenha,
     exportarBackup,
+    editarCredencial,
+    excluirCredencial,
   };
 
   // Compatibilidade com scripts globais
