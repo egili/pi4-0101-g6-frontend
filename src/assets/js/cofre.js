@@ -331,10 +331,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (btnExportar) {
-    btnExportar.addEventListener("click", () => {
-      alert("Backup criptografado exportado (hard coded).");
+    btnExportar.addEventListener("click", async () => {
+        const textoOriginal = btnExportar.textContent;
+        btnExportar.disabled = true;
+        btnExportar.textContent = "Gerando backup...";
+
+        try {
+            // 1. Busca os dados do Back-end 1
+            const dadosBackup = await ApiCliente.exportarBackup();
+
+            // 2. Transforma em texto (JSON formatado)
+            const conteudoArquivo = JSON.stringify(dadosBackup, null, 2);
+            
+            // 3. Cria o arquivo virtual e o link de download
+            const blob = new Blob([conteudoArquivo], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            
+            link.href = url;
+            link.setAttribute('download', `backup_cofre_${Date.now()}.vault`);
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+        } catch (erro) {
+            console.error(erro);
+            const msg = ApiCliente.mensagemErro(erro.codigo, erro.message);
+            alert(msg);
+        } finally {
+            btnExportar.disabled = false;
+            btnExportar.textContent = textoOriginal;
+        }
     });
-  }
+}
 
   if (btnImportar) {
     btnImportar.addEventListener("click", () => {
@@ -514,5 +545,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Gera uma senha inicial no painel
   generatePassword();
-  carregarServicos();
+  carregarServicos(); 
 });

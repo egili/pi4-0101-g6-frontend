@@ -9,20 +9,17 @@
   const STORAGE_UID = "cofre:usuarioId";
 
   const ERROS = {
-    // CT1
     USUARIO_JA_EXISTE: "Este nome de usuário já existe.",
     CAMPO_OBRIGATORIO_AUSENTE: "Preencha todos os campos obrigatórios.",
-    // CT2
     SESSAO_INVALIDA: "Sessão inválida ou expirada. Faça login novamente.",
     USUARIO_NAO_ENCONTRADO: "Usuário não encontrado.",
-    // Login (E3, card 831)
     SENHA_INCORRETA: "Usuário ou senha mestra incorretos.",
     DADOS_INVALIDOS: "Dados inválidos. Verifique os campos da credencial.",
     FALHA_DECIFRAGEM: "Não foi possível decifrar a senha deste serviço.",
-    // Gerais
     ERRO_CONEXAO: "Falha de conexão com o servidor.",
     ERRO_BANCO: "Erro ao salvar no banco de dados.",
     SEM_RESPOSTA: "Comando sem resposta do servidor. Nada foi confirmado como sucesso.",
+    BACKUP_VAZIO: "Você não tem credenciais salvas para exportar.",
   };
 
   function mensagemErro(codigo, fallback) {
@@ -38,9 +35,7 @@
       if (chaveCifra) global.sessionStorage.setItem(STORAGE_CHAVE, chaveCifra);
       if (usuario) global.sessionStorage.setItem(STORAGE_USUARIO, usuario);
       if (usuarioId != null) global.sessionStorage.setItem(STORAGE_UID, String(usuarioId));
-    } catch (_) {
-      /* storage indisponível */
-    }
+    } catch (_) {}
   }
 
   function obterSessao() {
@@ -62,19 +57,13 @@
       global.sessionStorage.removeItem(STORAGE_CHAVE);
       global.sessionStorage.removeItem(STORAGE_USUARIO);
       global.sessionStorage.removeItem(STORAGE_UID);
-    } catch (_) {
-      /* storage indisponível */
-    }
+    } catch (_) {}
   }
 
-  /**
-   * Garante que haja uma chave simétrica de sessão de 256 bits disponível.
-   */
   function obterOuGerarChaveSessao() {
     let chave = obterSessao().chaveCifra;
     if (chave) return chave;
 
-    // Gera chave temporária de 256 bits se o usuário entrou direto na tela
     const raw = (global.crypto || window.crypto).getRandomValues(new Uint8Array(32));
     chave = btoa(String.fromCharCode(...raw));
     salvarSessao({ chaveCifra: chave });
@@ -83,14 +72,6 @@
 
   // --- Cifragem Local (Zero-Trust via Web Crypto API) ---
 
-  /**
-   * Cifra localmente texto plano usando AES-GCM (256 bits) com IV aleatório de 12 bytes.
-   * Executa 100% no navegador do cliente, sem expor o texto claro à rede.
-   *
-   * @param {string} textoPlano Texto a ser cifrado
-   * @param {string} chaveBase64 Chave simétrica AES em Base64
-   * @returns {Promise<{dadosCifrados: string, iv: string}>}
-   */
   async function cifrarLocalmente(textoPlano, chaveBase64) {
     if (!textoPlano) {
       throw HttpClient.criarErroRede("DADOS_INVALIDOS", "Texto para cifragem não pode ser vazio.");
@@ -103,13 +84,9 @@
       throw new Error("Web Crypto API não suportada neste ambiente.");
     }
 
-    // 1. Gera IV novo, aleatório e exclusivo (12 bytes)
     const ivBytes = cryptoObj.getRandomValues(new Uint8Array(12));
-
-    // 2. Converte a chave Base64 para Uint8Array
     const chaveRaw = Uint8Array.from(atob(chaveStr), (c) => c.charCodeAt(0));
 
-    // 3. Importa a chave AES-GCM
     const cryptoKey = await cryptoObj.subtle.importKey(
       "raw",
       chaveRaw,
@@ -118,7 +95,6 @@
       ["encrypt"]
     );
 
-    // 4. Cifra com AES-GCM (tag de 128 bits anexada ao final pelo Web Crypto)
     const encodedPlain = new TextEncoder().encode(textoPlano);
     const cipherBuffer = await cryptoObj.subtle.encrypt(
       { name: "AES-GCM", iv: ivBytes, tagLength: 128 },
@@ -126,7 +102,6 @@
       encodedPlain
     );
 
-    // 5. Codifica ambos em Base64
     const dadosCifrados = btoa(String.fromCharCode(...new Uint8Array(cipherBuffer)));
     const iv = btoa(String.fromCharCode(...ivBytes));
 
@@ -135,99 +110,78 @@
 
   // --- Operações de Rede (Back-end 1 e Back-end 2) ---
 
-  /** Back-end 2: gera salt + hash (senha nunca vai ao Back-end 1). */
-  async function gerarHashSenha(senhaMestra) {
+  // Busca o salt do usuário no Back-end 1 antes do login.
+  async function buscarSalt(username) {
+    const resultado = await HttpClient.get("backend1", `/salt/${username}`, { 
+      isWrite: false,
+      requireBody: true 
+    });
+    const data = HttpClient.exigirResposta(resultado, "Erro ao buscar salt.");
+    return data.salt;
+  }
+
+  async function gerarHashSenha(senhaMestra, saltEnviado) {
+    const body = { senha: senhaMestra };
+    if (saltEnviado) {
+      body.salt = saltEnviado;
+    }
+
     const resultado = await HttpClient.post(
-      "backend2",
-      "/api/hash",
-      { senhaMestra },
+      "backend2", 
+      "/api/crypto/derivar", 
+      body, 
       { isWrite: false }
     );
 
-    const data = HttpClient.exigirResposta(
-      resultado,
-      "Sem resposta do Back-end 2 ao gerar o hash."
-    );
+    const data = HttpClient.exigirResposta(resultado, "Sem resposta do Back-end 2 ao gerar o hash.");
 
-    const salt = data.salt || data.saltUsuario;
-    const senhaMestraHash =
-      data.senhaMestraHash || data.hashLogin || data.hashAutenticacao;
+    const salt = data.salt;
+    const senhaMestraHash = data.hashLogin;
+    const chaveCifra = data.chaveCifra;
 
     if (!senhaMestraHash || !salt) {
-      throw HttpClient.criarErroRede(
-        "CAMPO_OBRIGATORIO_AUSENTE",
-        "Resposta inválida do módulo de criptografia."
-      );
+      throw HttpClient.criarErroRede("CAMPO_OBRIGATORIO_AUSENTE", "Resposta inválida do módulo de criptografia.");
+    }
+
+    if (chaveCifra) {
+      salvarSessao({ chaveCifra });
     }
 
     return { salt, senhaMestraHash };
   }
 
-  /** Back-end 1 / CT1: persiste username + hash + salt. */
   async function cadastrarUsuario({ username, senhaMestraHash, salt }) {
     if (!username || !senhaMestraHash || !salt) {
-      throw HttpClient.criarErroRede(
-        "CAMPO_OBRIGATORIO_AUSENTE",
-        "Preencha todos os campos obrigatórios."
-      );
+      throw HttpClient.criarErroRede("CAMPO_OBRIGATORIO_AUSENTE", "Preencha todos os campos obrigatórios.");
     }
 
     const resultado = await HttpClient.post(
       "backend1",
-      "/api/cadastrarUsuario",
+      "/usuarios", 
       { username, senhaMestraHash, salt },
-      {
-        isWrite: true,
-        writeId: `register:${username}`,
-        requireBody: true,
-        emptyMessage:
-          "Cadastro sem resposta do servidor. Nada foi confirmado como sucesso.",
-      }
+      { isWrite: true, writeId: `register:${username}`, requireBody: true }
     );
 
-    const data = HttpClient.exigirResposta(
-      resultado,
-      "Sem resposta do Back-end 1 ao cadastrar. Confira antes de repetir."
-    );
-
-    if (data.usuarioId == null && data.usuario_id == null) {
-      throw HttpClient.criarErroRede(
-        "SEM_RESPOSTA",
-        "Cadastro sem usuarioId do servidor. Nada foi confirmado como sucesso."
-      );
+    const data = HttpClient.exigirResposta(resultado, "Sem resposta do Back-end 1 ao cadastrar.");
+    
+    if (data.usuarioId == null && data.usuario_id == null && data.id == null) {
+      throw HttpClient.criarErroRede("SEM_RESPOSTA", "Cadastro sem usuarioId do servidor.");
     }
 
-    return {
-      usuarioId: data.usuarioId ?? data.usuario_id,
-      mensagem: data.mensagem || "Conta criada com sucesso",
+    return { 
+      usuarioId: data.usuarioId ?? data.usuario_id ?? data.id, 
+      mensagem: data.mensagem || "Conta criada com sucesso" 
     };
   }
 
-  /**
-   * Back-end 1 / CT2: envia credencial já cifrada com o token de autorização.
-   *
-   * @param {Object} params
-   * @param {string} params.servico Nome do serviço
-   * @param {string} params.usuarioServico Login do serviço
-   * @param {string} params.dadosCifrados Blob cifrado em Base64
-   * @param {string} params.iv Vetor de inicialização em Base64
-   * @param {string} [params.token] Token JWT (se omitido, busca da sessão)
-   * @returns {Promise<{credencialId: number, mensagem: string}>}
-   */
   async function salvarCredencial({ servico, usuarioServico, dadosCifrados, iv, token }) {
     if (!servico || !usuarioServico || !dadosCifrados || !iv) {
-      throw HttpClient.criarErroRede(
-        "DADOS_INVALIDOS",
-        "Preencha todos os campos da credencial."
-      );
+      throw HttpClient.criarErroRede("DADOS_INVALIDOS", "Preencha todos os campos da credencial.");
     }
 
     const tokenAtivo = token || obterSessao().token;
     if (!tokenAtivo) {
-      throw HttpClient.criarErroRede(
-        "SESSAO_INVALIDA",
-        "Sessão inválida ou expirada. Faça login novamente."
-      );
+      throw HttpClient.criarErroRede("SESSAO_INVALIDA", "Sessão inválida ou expirada. Faça login novamente.");
     }
 
     const headers = {
@@ -239,166 +193,72 @@
       "backend1",
       "/credentials",
       { servico, usuarioServico, dadosCifrados, iv },
-      {
-        headers,
-        isWrite: true,
-        writeId: `save_cred:${servico}:${usuarioServico}`,
-        requireBody: true,
-        emptyMessage:
-          "Salvamento sem resposta do servidor. Nada foi confirmado como sucesso.",
-      }
+      { headers, isWrite: true, writeId: `save_cred:${servico}:${usuarioServico}`, requireBody: true }
     );
 
-    const data = HttpClient.exigirResposta(
-      resultado,
-      "Sem resposta do Back-end 1 ao salvar a credencial."
-    );
-
+    const data = HttpClient.exigirResposta(resultado, "Sem resposta do Back-end 1 ao salvar a credencial.");
     const credencialId = data.credencialId ?? data.credencial_id ?? data.id;
+    
     if (credencialId == null) {
-      throw HttpClient.criarErroRede(
-        "SEM_RESPOSTA",
-        "Servidor não confirmou o ID da credencial salva."
-      );
+      throw HttpClient.criarErroRede("SEM_RESPOSTA", "Servidor não confirmou o ID da credencial salva.");
     }
 
-    return {
-      credencialId,
-      mensagem: data.mensagem || "Credencial salva com sucesso",
-    };
+    return { credencialId, mensagem: data.mensagem || "Credencial salva com sucesso" };
   }
 
-  /**
-   * Fluxo interativo completo do comando de salvar credencial:
-   * 1. Cifra a senha localmente no cliente (Zero-Trust)
-   * 2. Envia os dados cifrados e o IV ao servidor com o token da sessão
-   *
-   * @param {Object} params
-   * @param {string} params.servico Nome do serviço (ex: Gmail, GitHub)
-   * @param {string} params.usuarioServico Login do serviço (ex: email@gmail.com)
-   * @param {string} params.senha Senha em claro (será cifrada antes de sair da memória)
-   * @param {string} [params.chaveCifra] Chave AES-256 (se omitido, usa chave da sessão)
-   * @param {string} [params.token] Token JWT ativo
-   * @returns {Promise<{credencialId: number, mensagem: string, dadosCifrados: string, iv: string}>}
-   */
   async function executarSalvarCredencial({ servico, usuarioServico, senha, chaveCifra, token }) {
-    if (!servico || !servico.trim()) {
-      throw HttpClient.criarErroRede("DADOS_INVALIDOS", "O nome do serviço é obrigatório.");
-    }
-    if (!usuarioServico || !usuarioServico.trim()) {
-      throw HttpClient.criarErroRede("DADOS_INVALIDOS", "O usuário/login do serviço é obrigatório.");
-    }
-    if (!senha) {
-      throw HttpClient.criarErroRede("DADOS_INVALIDOS", "A senha do serviço é obrigatória.");
-    }
+    if (!servico || !servico.trim()) throw HttpClient.criarErroRede("DADOS_INVALIDOS", "O nome do serviço é obrigatório.");
+    if (!usuarioServico || !usuarioServico.trim()) throw HttpClient.criarErroRede("DADOS_INVALIDOS", "O usuário/login do serviço é obrigatório.");
+    if (!senha) throw HttpClient.criarErroRede("DADOS_INVALIDOS", "A senha do serviço é obrigatória.");
 
-    // Cifragem local exclusiva no processo do cliente
     const chave = chaveCifra || obterOuGerarChaveSessao();
     const { dadosCifrados, iv } = await cifrarLocalmente(senha, chave);
 
-    // Envio para o Back-end 1 (apenas blobs cifrados e IV)
-    const resposta = await salvarCredencial({
-      servico: servico.trim(),
-      usuarioServico: usuarioServico.trim(),
-      dadosCifrados,
-      iv,
-      token,
-    });
-
-    return {
-      credencialId: resposta.credencialId,
-      mensagem: resposta.mensagem,
-      dadosCifrados,
-      iv,
-    };
+    const resposta = await salvarCredencial({ servico: servico.trim(), usuarioServico: usuarioServico.trim(), dadosCifrados, iv, token });
+    return { credencialId: resposta.credencialId, mensagem: resposta.mensagem, dadosCifrados, iv };
   }
 
-  /**
-   * Back-end 1 / CT4: lista as credenciais cifradas do usuário da sessão.
-   * A senha em claro não vem nesta resposta.
-   *
-   * @param {string} [token]
-   * @returns {Promise<Array<{credencialId: number, servico: string, usuarioServico: string, dadosCifrados: string, iv: string}>>}
-   */
   async function listarCredenciais(token) {
     const tokenAtivo = token || obterSessao().token;
-    if (!tokenAtivo) {
-      throw HttpClient.criarErroRede(
-        "SESSAO_INVALIDA",
-        "Sessão inválida ou expirada. Faça login novamente."
-      );
-    }
+    if (!tokenAtivo) throw HttpClient.criarErroRede("SESSAO_INVALIDA", "Sessão inválida ou expirada. Faça login novamente.");
 
     const resultado = await HttpClient.get("backend1", "/credentials", {
       headers: { Authorization: `Bearer ${tokenAtivo}` },
       requireBody: true,
-      emptyMessage: "Listagem sem resposta do servidor.",
     });
 
-    const data = HttpClient.exigirResposta(
-      resultado,
-      "Listagem sem resposta do Back-end 1."
-    );
-
-    if (!Array.isArray(data)) {
-      throw HttpClient.criarErroRede(
-        "SEM_RESPOSTA",
-        "Listagem sem lista de credenciais."
-      );
-    }
-
+    const data = HttpClient.exigirResposta(resultado, "Listagem sem resposta do Back-end 1.");
+    if (!Array.isArray(data)) throw HttpClient.criarErroRede("SEM_RESPOSTA", "Listagem sem lista de credenciais.");
+    
     return data;
   }
 
-  /**
-   * Back-end 2: decifra o blob da credencial com a chave da sessão.
-   * A chave não vai para o Back-end 1.
-   *
-   * @param {Object} params
-   * @param {string} params.dadosCifrados
-   * @param {string} params.iv
-   * @param {string} [params.chaveCifra]
-   * @returns {Promise<string>} senha em texto claro
-   */
   async function decifrarSenha({ dadosCifrados, iv, chaveCifra }) {
     const chave = chaveCifra || obterSessao().chaveCifra;
-    if (!dadosCifrados || !iv) {
-      throw HttpClient.criarErroRede(
-        "DADOS_INVALIDOS",
-        "Esta credencial não tem blob para decifrar."
-      );
-    }
-    if (!chave) {
-      throw HttpClient.criarErroRede(
-        "SESSAO_INVALIDA",
-        "Sessão sem chave de cifra. Faça login novamente."
-      );
-    }
+    if (!dadosCifrados || !iv) throw HttpClient.criarErroRede("DADOS_INVALIDOS", "Esta credencial não tem blob para decifrar.");
+    if (!chave) throw HttpClient.criarErroRede("SESSAO_INVALIDA", "Sessão sem chave de cifra. Faça login novamente.");
 
-    const resultado = await HttpClient.post(
-      "backend2",
-      "/api/crypto/decifrar",
-      { dadosCifrados, iv, chaveCifra: chave },
-      {
-        isWrite: false,
-        requireBody: true,
-        emptyMessage: "Decifragem sem resposta do Back-end 2.",
-      }
-    );
+    const resultado = await HttpClient.post("backend2", "/api/crypto/decifrar", { dadosCifrados, iv, chaveCifra: chave }, { isWrite: false, requireBody: true });
+    const data = HttpClient.exigirResposta(resultado, "Decifragem sem resposta do Back-end 2.");
 
-    const data = HttpClient.exigirResposta(
-      resultado,
-      "Decifragem sem resposta do Back-end 2."
-    );
-
-    if (!data || typeof data.senha !== "string") {
-      throw HttpClient.criarErroRede(
-        "SEM_RESPOSTA",
-        "Back-end 2 não devolveu a senha."
-      );
-    }
-
+    if (!data || typeof data.senha !== "string") throw HttpClient.criarErroRede("SEM_RESPOSTA", "Back-end 2 não devolveu a senha.");
     return data.senha;
+  }
+
+  // Exportar Backup
+  async function exportarBackup() {
+    const tokenAtivo = obterSessao().token;
+    if (!tokenAtivo) {
+      throw HttpClient.criarErroRede("SESSAO_INVALIDA", "Sessão inválida ou expirada. Faça login novamente.");
+    }
+
+    const resultado = await HttpClient.get("backend1", "/backup", {
+      headers: { Authorization: `Bearer ${tokenAtivo}` },
+      requireBody: true,
+      emptyMessage: "Exportação sem resposta do servidor.",
+    });
+
+    return HttpClient.exigirResposta(resultado, "Sem resposta do Back-end 1 ao exportar o backup.");
   }
 
   global.ApiCliente = {
@@ -407,16 +267,19 @@
     obterSessao,
     limparSessao,
     cifrarLocalmente,
+    buscarSalt,
     gerarHashSenha,
     cadastrarUsuario,
     salvarCredencial,
     executarSalvarCredencial,
     listarCredenciais,
     decifrarSenha,
+    exportarBackup,
   };
 
   // Compatibilidade com scripts globais
   global.mensagemErro = mensagemErro;
+  global.buscarSalt = buscarSalt;
   global.gerarHashSenha = gerarHashSenha;
   global.cadastrarUsuario = cadastrarUsuario;
   global.salvarCredencial = salvarCredencial;
@@ -424,4 +287,5 @@
   global.executarSalvarCredencial = executarSalvarCredencial;
   global.listarCredenciais = listarCredenciais;
   global.decifrarSenha = decifrarSenha;
+  global.exportarBackup = exportarBackup;
 })(window);
