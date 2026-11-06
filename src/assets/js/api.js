@@ -15,6 +15,8 @@
     // CT2
     SESSAO_INVALIDA: "Sessão inválida ou expirada. Faça login novamente.",
     USUARIO_NAO_ENCONTRADO: "Usuário não encontrado.",
+    // Login (E3, card 831)
+    SENHA_INCORRETA: "Usuário ou senha mestra incorretos.",
     DADOS_INVALIDOS: "Dados inválidos. Verifique os campos da credencial.",
     FALHA_DECIFRAGEM: "Não foi possível decifrar a senha deste serviço.",
     // Gerais
