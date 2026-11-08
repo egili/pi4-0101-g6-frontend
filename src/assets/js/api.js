@@ -12,11 +12,10 @@
     USUARIO_JA_EXISTE: "Este nome de usuário já existe.",
     CAMPO_OBRIGATORIO_AUSENTE: "Preencha todos os campos obrigatórios.",
     SESSAO_INVALIDA: "Sessão inválida ou expirada. Faça login novamente.",
-    // Editar e excluir (H08.2, card 841)
     CREDENCIAL_NAO_ENCONTRADA: "Credencial não encontrada.",
     ACESSO_NEGADO: "Você não tem permissão para esta credencial.",
     USUARIO_NAO_ENCONTRADO: "Usuário não encontrado.",
-    SENHA_INCORRETA: "Usuário ou senha mestra incorretos.",
+    SENHA_INCORRETA: "Senha mestra do backup incorreta ou arquivo corrompido.",
     DADOS_INVALIDOS: "Dados inválidos. Verifique os campos da credencial.",
     FALHA_DECIFRAGEM: "Não foi possível decifrar a senha deste serviço.",
     ERRO_CONEXAO: "Falha de conexão com o servidor.",
@@ -113,7 +112,6 @@
 
   // --- Operações de Rede (Back-end 1 e Back-end 2) ---
 
-  // Busca o salt do usuário no Back-end 1 antes do login.
   async function buscarSalt(username) {
     const resultado = await HttpClient.get("backend1", `/salt/${username}`, { 
       isWrite: false,
@@ -264,10 +262,81 @@
     return HttpClient.exigirResposta(resultado, "Sem resposta do Back-end 1 ao exportar o backup.");
   }
 
-  /**
-   * Back-end 1 / CT5: recifra a senha com IV novo e envia os quatro campos no PUT.
-   * Não gera chave aleatória: sem chave da sessão, falha em vez de cifrar com outra chave.
+  /*
+   Importar Backup
+   Deriva a chave antiga, decifra as credenciais do arquivo, re-cifra com a chave da sessão atual
+   e envia para o Back-end 1 salvar via POST /backup.
    */
+  async function importarBackup(arquivoJson, senhaDigitada) {
+    const { token, chaveCifra: chaveAtual } = obterSessao();
+    
+    if (!token || !chaveAtual) {
+      throw HttpClient.criarErroRede("SESSAO_INVALIDA", "Sessão inválida ou expirada. Faça login novamente.");
+    }
+
+    const saltAntigo = arquivoJson.usuario?.salt;
+    const credenciais = arquivoJson.credenciais;
+
+    if (!saltAntigo || !Array.isArray(credenciais) || credenciais.length === 0) {
+      throw HttpClient.criarErroRede("DADOS_INVALIDOS", "Arquivo .vault inválido ou incompleto.");
+    }
+
+    // 1. Deriva a chave antiga (sem sobrescrever a chaveAtual na sessão)
+    const resultadoChave = await HttpClient.post(
+      "backend2", 
+      "/api/crypto/derivar", 
+      { senha: senhaDigitada, salt: saltAntigo }, 
+      { isWrite: false }
+    );
+    const dataChave = HttpClient.exigirResposta(resultadoChave, "Sem resposta do Back-end 2 ao derivar a chave do backup.");
+    const chaveAntiga = dataChave.chaveCifra;
+
+    if (!chaveAntiga) {
+      throw HttpClient.criarErroRede("DADOS_INVALIDOS", "Falha ao derivar a chave do backup.");
+    }
+
+    const credenciaisReCifradas = [];
+
+    // 2. Para cada credencial: decifra com a chave antiga e cifra com a chave atual
+    for (const cred of credenciais) {
+      let senhaClara;
+      try {
+        senhaClara = await decifrarSenha({ 
+          dadosCifrados: cred.dadosCifrados, 
+          iv: cred.iv, 
+          chaveCifra: chaveAntiga 
+        });
+      } catch (e) {
+        throw HttpClient.criarErroRede("SENHA_INCORRETA", "Senha mestra do backup incorreta ou arquivo corrompido.");
+      }
+
+      const { dadosCifrados, iv } = await cifrarLocalmente(senhaClara, chaveAtual);
+      
+      credenciaisReCifradas.push({
+        servico: cred.servico,
+        usuarioServico: cred.usuarioServico,
+        dadosCifrados: dadosCifrados,
+        iv: iv
+      });
+    }
+
+    // 3. Envia a lista re-cifrada para o Back-end 1 salvar
+    const resultado = await HttpClient.post(
+      "backend1",
+      "/backup",
+      credenciaisReCifradas,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        isWrite: true,
+        requireBody: true,
+        emptyMessage: "Importação sem resposta do servidor."
+      }
+    );
+
+    return HttpClient.exigirResposta(resultado, "Sem resposta do Back-end 1 ao salvar a importação.");
+  }
+
+  // Editar e excluir
   async function editarCredencial({ id, servico, usuarioServico, senha }) {
     const { token, chaveCifra } = obterSessao();
     if (!token || !chaveCifra) {
@@ -295,7 +364,6 @@
     return HttpClient.exigirResposta(resultado, "Edição sem resposta do Back-end 1.");
   }
 
-  /** Back-end 1 / CT6: exclui a credencial do usuário logado. */
   async function excluirCredencial({ id }) {
     const { token } = obterSessao();
     if (!token) {
@@ -327,6 +395,7 @@
     listarCredenciais,
     decifrarSenha,
     exportarBackup,
+    importarBackup, 
     editarCredencial,
     excluirCredencial,
   };
@@ -342,4 +411,5 @@
   global.listarCredenciais = listarCredenciais;
   global.decifrarSenha = decifrarSenha;
   global.exportarBackup = exportarBackup;
+  global.importarBackup = importarBackup;
 })(window);

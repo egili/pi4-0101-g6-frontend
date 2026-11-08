@@ -330,6 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Exportar Backup
   if (btnExportar) {
     btnExportar.addEventListener("click", async () => {
         const textoOriginal = btnExportar.textContent;
@@ -337,13 +338,8 @@ document.addEventListener("DOMContentLoaded", () => {
         btnExportar.textContent = "Gerando backup...";
 
         try {
-            // 1. Busca os dados do Back-end 1
             const dadosBackup = await ApiCliente.exportarBackup();
-
-            // 2. Transforma em texto (JSON formatado)
             const conteudoArquivo = JSON.stringify(dadosBackup, null, 2);
-            
-            // 3. Cria o arquivo virtual e o link de download
             const blob = new Blob([conteudoArquivo], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -358,18 +354,67 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (erro) {
             console.error(erro);
-            const msg = ApiCliente.mensagemErro(erro.codigo, erro.message);
-            alert(msg);
+            alert(ApiCliente.mensagemErro(erro.codigo, erro.message));
         } finally {
             btnExportar.disabled = false;
             btnExportar.textContent = textoOriginal;
         }
     });
-}
+  }
+  // Importar Backup
+  if (btnImportar && backupFile) {
+    btnImportar.addEventListener("click", async () => {
+      const senhaDigitada = document.getElementById('backup-senha')?.value;
 
-  if (btnImportar) {
-    btnImportar.addEventListener("click", () => {
-      alert("Backup importado (hard coded).");
+      // Validações iniciais
+      if (!backupFile.files || backupFile.files.length === 0) {
+        alert("Por favor, selecione um arquivo .vault primeiro.");
+        return;
+      }
+      if (!senhaDigitada) {
+        alert("Por favor, digite a senha mestra antiga do backup.");
+        return;
+      }
+
+      const file = backupFile.files[0];
+      const reader = new FileReader();
+
+      reader.onload = async (e) => {
+        const textoOriginal = btnImportar.textContent;
+        btnImportar.disabled = true;
+        btnImportar.textContent = "Importando...";
+
+        try {
+          const textoArquivo = e.target.result;
+          const dadosBackup = JSON.parse(textoArquivo);
+
+          // Chama a função do api.js que faz a re-cifragem
+          const resposta = await ApiCliente.importarBackup(dadosBackup, senhaDigitada);
+
+          alert(`Sucesso! ${resposta.credenciaisInseridas || resposta.credenciais?.length || 'Várias'} credenciais foram restauradas.`);
+          
+          // Limpa os campos
+          backupFile.value = "";
+          if (filePick) filePick.textContent = "Escolher arquivo";
+          document.getElementById('backup-senha').value = "";
+
+          // Recarrega a lista de credenciais na tela
+          await carregarServicos();
+          
+        } catch (erro) {
+          console.error(erro);
+          alert(ApiCliente.mensagemErro(erro.codigo, erro.message));
+        } finally {
+          btnImportar.disabled = false;
+          btnImportar.textContent = textoOriginal;
+        }
+      };
+
+      reader.onerror = () => {
+        alert("Erro ao ler o arquivo .vault.");
+      };
+
+      reader.readAsText(file);
     });
   }
 
@@ -387,7 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --- Modal Nova Conta / Salvar Credencial (H05.3 / CT2) ---
+  // --- Modal Nova Conta / Salvar Credencial ---
   const modalConta = document.getElementById("modal-conta");
   const modalContaOverlay = document.getElementById("modal-conta-overlay");
   const btnFecharModal = document.getElementById("btn-fechar-modal-conta");
@@ -477,7 +522,6 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        // Executa a cifragem local e salvamento (CT2 / H05.3)
         const resultado = await ApiCliente.executarSalvarCredencial({
           servico,
           usuarioServico,
@@ -511,7 +555,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --- Editar e excluir credencial (H08.2 / CT5 e CT6, card 841) ---
+  // --- Editar e excluir credencial ---
   const btnEditarConta = document.getElementById("btn-editar-conta");
   const btnExcluirConta = document.getElementById("btn-excluir-conta");
 
@@ -672,12 +716,10 @@ document.addEventListener("DOMContentLoaded", () => {
       window.alert(
         "Houve uma queda durante uma gravação anterior. Confira a lista de credenciais abaixo antes de repetir o comando."
       );
-      // Mantém a flag até o usuário ver a lista; limpa só após o aviso no cofre
       HttpClient.limparGravacaoPendente();
     }
   }
 
-  // Gera uma senha inicial no painel
   generatePassword();
   carregarServicos(); 
 });
