@@ -60,33 +60,9 @@ document.addEventListener("DOMContentLoaded", () => {
         await new Promise((r) => setTimeout(r, 900));
       }
 
-      // 1. Busca o salt do usuário no banco (Back-end 1)
-      let saltUsuario;
-      try {
-        saltUsuario = await ApiCliente.buscarSalt(usuario);
-      } catch (e) {
-        throw HttpClient.criarErroRede("USUARIO_NAO_ENCONTRADO", "Usuário não encontrado.");
-      }
-
-      // 2. Manda a senha + o salt para o Back-end 2 gerar o hash correto
-      const { senhaMestraHash } = await ApiCliente.gerarHashSenha(senha, saltUsuario);
-
-      // 3. Manda o hash para o Back-end 1 validar e gerar o Token JWT
-      const resultado = await HttpClient.post(
-        "backend1",
-        "/login",
-        { username: usuario, hashLogin: senhaMestraHash },
-        { isWrite: false }
-      );
-      
-      const data = HttpClient.exigirResposta(resultado, "Sem resposta do Cliente ao fazer login.");
-
-      // 4. Salva o Token JWT e os dados do usuário
-      ApiCliente.salvarSessao({ 
-        token: data.token, 
-        usuario: usuario, 
-        usuarioId: data.usuarioId 
-      });
+      // A derivação, o token e a chave ficam no Cliente (ADR 0002 e 0005)
+      const data = await ApiCliente.login(usuario, senha);
+      ApiCliente.salvarSessao({ usuario: data.username, usuarioId: data.usuarioId });
 
       window.location.href = "cofre.html";
     } catch (erro) {

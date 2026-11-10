@@ -72,15 +72,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 1) Back-end 2 gera salt + hash (senha nunca vai ao Back-end 1)
-      const { salt, senhaMestraHash } = await gerarHashSenha(senhaMestra);
-
-      // 2) Back-end 1 / CT1 persiste username + hash + salt
-      const resultado = await cadastrarUsuario({
-        username,
-        senhaMestraHash,
-        salt,
-      });
+      // O Cliente gera salt e hash e envia ao Servidor; a chave não sai dele (ADR 0002)
+      const resultado = await ApiCliente.cadastrar({ username, senha: senhaMestra });
 
       // Sucesso só com resposta explícita do Back-end 1
       if (!resultado) {
