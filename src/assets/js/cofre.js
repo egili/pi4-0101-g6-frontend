@@ -155,7 +155,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const sessao = ApiCliente.obterSessao();
-    if (!sessao.token) {
+    if (!sessao.usuarioId) {
       credenciais.clear();
       renderLista();
       definirStatusLista("Faça login para listar os serviços.");
@@ -164,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const lista = await ApiCliente.listarCredenciais(sessao.token);
+      const lista = await ApiCliente.listarCredenciais();
       credenciais.clear();
       lista.forEach((item) => {
         if (item && item.credencialId != null) {
@@ -213,10 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
     exibirCofreAlerta("Decifrando senha…");
 
     try {
-      const senha = await ApiCliente.decifrarSenha({
-        dadosCifrados: cred.dadosCifrados,
-        iv: cred.iv,
-      });
+      const senha = await ApiCliente.decifrarSenha({ id });
       if (meuPedido !== pedidoSenha) return;
       contaSenha.value = senha;
       contaSenha.type = "text";
@@ -338,7 +335,12 @@ document.addEventListener("DOMContentLoaded", () => {
         btnExportar.textContent = "Gerando backup...";
 
         try {
-            const dadosBackup = await ApiCliente.exportarBackup();
+            const senhaExportar = document.getElementById('backup-senha')?.value;
+            if (!senhaExportar) {
+              alert("Digite a senha do backup no campo de importação antes de exportar.");
+              return;
+            }
+            const dadosBackup = await ApiCliente.exportarBackup(senhaExportar);
             const conteudoArquivo = JSON.stringify(dadosBackup, null, 2);
             const blob = new Blob([conteudoArquivo], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);
