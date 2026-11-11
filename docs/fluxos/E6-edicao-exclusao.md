@@ -8,12 +8,12 @@
 2. O Cliente (Back-end 2) decifra a credencial e devolve os dados atuais ao navegador, que os exibe.
 3. O Usuário altera os campos que quiser no formulário.
 4. O Cliente cifra os novos dados com o Módulo de Criptografia.
-5. O Cliente envia os dados atualizados ao Servidor via requisição HTTP (REST) `PUT /credentials/{id}` (CT5), com o header `Authorization: Bearer tokenSessao`.
+5. O Cliente envia os dados atualizados ao Servidor via socket TCP `PedidoDeAtualizacao` (CT5), com o header o token da sessão.
 6. O Servidor atualiza a credencial na tabela `credencial`.
 7. O Banco de Dados confirma a atualização.
 8. O Cliente devolve a confirmação ao navegador, que exibe a mensagem de sucesso.
 9. (Exclusão) O Usuário clica em excluir em uma credencial.
-10. O Cliente envia `DELETE /credentials/{id}` (CT6) ao Servidor, com o header `Authorization: Bearer tokenSessao`; o Servidor apaga da tabela e confirma.
+10. O Cliente envia `PedidoDeExclusao` (CT6) ao Servidor, com o header o token da sessão; o Servidor apaga da tabela e confirma.
 
 ## Diagrama de sequência
 
@@ -36,7 +36,7 @@ sequenceDiagram
     N->>C: envia novos dados
     C->>CM: cifrar(novosDados)
     CM-->>C: dadosCifradosNovos
-    C->>S: CT5 PUT /credentials/{id} (Bearer tokenSessao)
+    C->>S: CT5 PedidoDeAtualizacao (token da sessão)
     S->>DB: CT10 Tabela credencial (atualizar)
     DB-->>S: confirmação
     S-->>C: credencialAtualizada
@@ -45,7 +45,7 @@ sequenceDiagram
 
     U->>N: clica em excluir uma credencial
     N->>C: pede exclusão
-    C->>S: CT6 DELETE /credentials/{id} (Bearer tokenSessao)
+    C->>S: CT6 PedidoDeExclusao (token da sessão)
     S->>DB: CT10 Tabela credencial (excluir)
     DB-->>S: confirmação
     S-->>C: credencialExcluida

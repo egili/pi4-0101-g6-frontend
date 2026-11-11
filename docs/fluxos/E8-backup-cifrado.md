@@ -35,7 +35,7 @@ Para viabilizar a portabilidade entre diferentes computadores sem depender de um
 ## Passos
 
 1. O Usuário clica em exportar backup no navegador (Front-end web).
-2. O navegador pede a exportação ao Cliente (Back-end 2), que envia a requisição ao Servidor via requisição HTTP (REST) `GET /backup` (CT7), com o header `Authorization: Bearer tokenSessao`.
+2. O navegador pede a exportação ao Cliente (Back-end 2), que envia a requisição ao Servidor via socket TCP `PedidoDeExportacao` (CT7), com o header o token da sessão.
 3. O Servidor valida o `tokenSessao`, consulta a tabela `credencial` (`CT10`) e devolve a lista de credenciais ao Cliente.
 4. O Cliente aciona o Módulo de Criptografia (local) para:
    - Gerar um `salt` criptográfico exclusivo para o backup (`gerarSalt()`);
@@ -61,7 +61,7 @@ sequenceDiagram
 
     U->>N: exportar backup
     N->>C: pede exportação
-    C->>S: CT7 GET /backup (Bearer tokenSessao)
+    C->>S: CT7 PedidoDeExportacao (token da sessão)
     S->>DB: CT10 Tabela credencial (buscar registros do usuário)
     DB-->>S: lista de credenciais
     S-->>C: credenciais (blobs)

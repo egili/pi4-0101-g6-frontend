@@ -5,7 +5,7 @@
 ## Passos
 
 1. O Usuário clica em listar suas credenciais no navegador (Front-end web).
-2. O navegador pede a listagem ao Cliente (Back-end 2), que envia `GET /credentials` ao Servidor via requisição HTTP (REST), com o header `Authorization: Bearer tokenSessao` (CT4).
+2. O navegador pede a listagem ao Cliente (Back-end 2), que envia `PedidoDeListagem` ao Servidor via socket TCP, com o header o token da sessão (CT4).
 3. O Servidor busca as credenciais do usuário na tabela `credencial`.
 4. O Servidor devolve a lista com `dadosCifrados` e `iv` ao Cliente, que a repassa ao navegador.
 5. O Usuário escolhe uma credencial para consultar.
@@ -26,7 +26,7 @@ sequenceDiagram
 
     U->>N: lista credenciais
     N->>C: pede listagem
-    C->>S: CT4 GET /credentials (Bearer tokenSessao)
+    C->>S: CT4 PedidoDeListagem (token da sessão)
     S->>DB: CT10 Tabela credencial (buscar por usuário)
     DB-->>S: lista de credenciais cifradas
     S-->>C: listaCredenciais
