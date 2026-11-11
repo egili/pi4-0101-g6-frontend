@@ -25,7 +25,7 @@ Um arquivo de backup (`.vault`) pode ter sido gerado com uma senha mestra antiga
 6. **Re-cifragem individual (Zero-Trust):** Para cada credencial obtida:
    - O Módulo de Criptografia gera um novo vetor de inicialização (`novoIv = gerarIV()`);
    - O Módulo de Criptografia cifra os dados da credencial utilizando a **chave de cifragem ativa do cofre atual** (`chaveCifragemAtual`) e o `novoIv`.
-7. O Cliente monta a lista de credenciais já re-cifradas com a chave atual e envia a requisição `CT8 POST /backup` ao Servidor via requisição HTTP (REST), com o header `Authorization: Bearer tokenSessao`, contendo `usuarioId` e a lista de credenciais.
+7. O Cliente monta a lista de credenciais já re-cifradas com a chave atual e envia a requisição `CT8 PedidoDeImportacao` ao Servidor via socket TCP, com o header o token da sessão, contendo `usuarioId` e a lista de credenciais.
 8. O Servidor valida o `tokenSessao` e insere os registros cifrados na tabela `credencial` (`CT10`), em uma única transação SQL: se algum registro falhar, nenhum é gravado.
 9. O Banco de Dados confirma a gravação dos novos registros.
 10. O Servidor responde ao Cliente com a confirmação e o total de `credenciaisInseridas`, e o Cliente repassa a resposta ao navegador.
@@ -63,7 +63,7 @@ sequenceDiagram
     end
 
     Note over C,S: Envio de Dados Re-cifrados ao Servidor
-    C->>S: CT8 POST /backup (Bearer tokenSessao, listaCredenciaisReCifradas)
+    C->>S: CT8 PedidoDeImportacao (tokenSessao, listaCredenciaisReCifradas)
     S->>S: valida tokenSessao
     S->>DB: CT10 Tabela credencial (inserir em lote, transação única)
     DB-->>S: confirmação de inserção

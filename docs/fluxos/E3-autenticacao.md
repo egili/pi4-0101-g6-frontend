@@ -5,13 +5,13 @@
 ## Passos
 
 1. O Usuário informa `username` e `senhaMestra` no formulário de login do navegador (Front-end web).
-2. **Obtenção do Salt (Fase 1 do CT3):** O Cliente (Back-end 2) envia `GET /salt/{username}` ao Servidor via requisição HTTP (REST).
+2. **Obtenção do Salt (Fase 1 do CT3):** O Cliente (Back-end 2) envia `PedidoDeSalt` ao Servidor via socket TCP.
 3. O Servidor consulta a tabela `usuario` no Banco de Dados para obter o `salt` cadastrado.
 4. O Servidor devolve o `salt` ao Cliente (ou erro `USUARIO_NAO_ENCONTRADO`).
 5. **Derivação de Chaves Separadas (Zero-Trust):** De posse do `salt`, o Cliente aciona o Módulo de Criptografia:
    - Deriva a **Chave de Cifragem** (usada unicamente no Cliente para cifrar/decifrar credenciais, mantida apenas na memória volátil).
    - Deriva o **Hash de Autenticação** (`senhaMestraHash`), obtido de forma unidirecional e isolada da chave de cifragem.
-6. **Validação da Autenticação (Fase 2 do CT3):** O Cliente envia `POST /login` com `username` e `hashLogin` (o `senhaMestraHash`) ao Servidor.
+6. **Validação da Autenticação (Fase 2 do CT3):** O Cliente envia `PedidoDeLogin` com `username` e `hashLogin` (o `senhaMestraHash`) ao Servidor.
 7. O Servidor compara o hash recebido com o armazenado na tabela `usuario`.
 8. Se as credenciais forem válidas, o Servidor gera e devolve um `tokenSessao` (campo `token`) e o `usuarioId`.
 9. Se o hash não bater, o Servidor devolve o erro `SENHA_INCORRETA`.
@@ -31,7 +31,7 @@ sequenceDiagram
     U->>N: informa username e senhaMestra
     N->>C: envia credenciais de login
     Note over C,S: Fase 1: Obtenção do Salt
-    C->>S: CT3 GET /salt/{username}
+    C->>S: CT3 PedidoDeSalt
     S->>DB: CT9 Tabela usuario (busca salt)
     DB-->>S: salt
     S-->>C: salt
@@ -43,7 +43,7 @@ sequenceDiagram
     CM-->>C: senhaMestraHash
 
     Note over C,S: Fase 2: Autenticação
-    C->>S: CT3 POST /login (username, hashLogin)
+    C->>S: CT3 PedidoDeLogin (username, hashLogin)
     S->>DB: CT9 Tabela usuario (valida hash)
     DB-->>S: confirmação de match
     S-->>C: CT3 tokenSessao, usuarioId

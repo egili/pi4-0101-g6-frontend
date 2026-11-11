@@ -7,7 +7,7 @@
 1. O Usuário preenche o formulário com os dados da credencial do Gmail e clica em salvar no navegador (Front-end web).
 2. O navegador envia os dados ao Cliente (Back-end 2), que chama o Módulo de Criptografia para cifrar a senha do serviço.
 3. O Módulo de Criptografia devolve os `dadosCifrados` e o `iv`.
-4. O Cliente envia `usuarioId`, `servico`, `usuarioServico`, `dadosCifrados` e `iv` ao Servidor via requisição HTTP (REST) `POST /credentials` (CT2), com o header `Authorization: Bearer tokenSessao`.
+4. O Cliente envia `usuarioId`, `servico`, `usuarioServico`, `dadosCifrados` e `iv` ao Servidor via socket TCP `PedidoDeCriacao` (CT2), com o header o token da sessão.
 5. O Servidor valida o `tokenSessao` e grava os dados na tabela `credencial`.
 6. O Banco de Dados confirma a inserção.
 7. O Servidor devolve a confirmação ao Cliente, que a repassa ao navegador.
@@ -28,7 +28,7 @@ sequenceDiagram
     N->>C: envia dados da credencial
     C->>CM: cifrar(senha, chaveMestra)
     CM-->>C: dadosCifrados + iv
-    C->>S: CT2 POST /credentials (Bearer tokenSessao)
+    C->>S: CT2 PedidoDeCriacao (token da sessão)
     S->>DB: CT10 Tabela credencial (inserir)
     DB-->>S: confirmação
     S-->>C: credencialSalva

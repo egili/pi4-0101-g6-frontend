@@ -9,7 +9,7 @@
 3. O Módulo de Criptografia deriva separadamente:
    - A **Chave de Cifragem** (mantida apenas na memória do Cliente para cifrar o cofre).
    - O **Hash de Autenticação** (`senhaMestraHash`), função unidirecional enviada ao Servidor para validação futura.
-4. O Cliente envia `username`, `senhaMestraHash` e `salt` ao Servidor via requisição HTTP (REST) `POST /usuarios` (CT1).
+4. O Cliente envia `username`, `senhaMestraHash` e `salt` ao Servidor via socket TCP `PedidoDeCadastro` (CT1).
 5. O Servidor grava os dados na tabela `usuario` (CT9).
 6. O Banco de Dados confirma a inserção.
 7. O Servidor devolve a confirmação com o `usuarioId` ao Cliente.
@@ -35,7 +35,7 @@ sequenceDiagram
     CM-->>C: chaveCifragem (armazenada apenas em memória no Cliente)
     C->>CM: derivarHashAutenticacao(chaveCifragem / senhaMestra)
     CM-->>C: senhaMestraHash
-    C->>S: CT1 POST /usuarios (username, senhaMestraHash, salt)
+    C->>S: CT1 PedidoDeCadastro (username, senhaMestraHash, salt)
     S->>DB: CT9 Tabela usuario (inserir registro)
     DB-->>S: confirmação
     S-->>C: usuarioCadastrado (usuarioId)
