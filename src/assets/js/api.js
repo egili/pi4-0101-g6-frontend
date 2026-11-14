@@ -182,7 +182,6 @@
     login,
     cadastrar,
     executarSalvarCredencial,
-    salvarCredencial: executarSalvarCredencial,
     listarCredenciais,
     decifrarSenha,
     editarCredencial,
