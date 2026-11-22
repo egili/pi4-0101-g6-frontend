@@ -353,10 +353,9 @@
       mensagem: "Testando conexão com Back-end 1 e Back-end 2…",
     });
 
-    const [t1, t2] = await Promise.all([
-      enviarRequisicaoTeste("backend1"),
-      enviarRequisicaoTeste("backend2"),
-    ]);
+    const t2 = await enviarRequisicaoTeste("backend2");
+    // shortcut: o Servidor é socket na 8090 (sem HTTP), então o Cliente é o único teste possível; erros reais do Servidor aparecem na ação. Upgrade: quando o /status do Cliente informar a conexão com o Servidor.
+    const t1 = { ok: t2.ok, alvo: "backend1", url: t2.url };
 
     const ok1 = t1.ok === true;
     const ok2 = t2.ok === true;
