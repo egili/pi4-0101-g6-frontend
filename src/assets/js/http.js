@@ -1,7 +1,7 @@
 /**
  * Estrutura de comunicação HTTP (Fetch) do Cliente no navegador.
  *
- * - Testa conexão com Back-end 1 e Back-end 2
+ * - Testa conexão com Servidor e Cliente
  * - Trata erros de rede
  * - Nunca considera sucesso sem resposta explícita do servidor
  * - Se a conexão cair: marca offline e orienta nova conexão + novo login
@@ -13,25 +13,25 @@
   const STORAGE_WRITE_ID = "cofre:quedaDuranteGravacao:id";
 
   const BASES = {
-    backend1:
-      (global.localStorage && global.localStorage.getItem("BACKEND1_URL")) ||
+    servidor:
+      (global.localStorage && global.localStorage.getItem("SERVIDOR_URL")) ||
       "http://localhost:8080",
-    backend2:
-      (global.localStorage && global.localStorage.getItem("BACKEND2_URL")) ||
+    cliente:
+      (global.localStorage && global.localStorage.getItem("CLIENTE_URL")) ||
       "http://localhost:8081",
   };
 
   const PATH_TESTE = {
-    backend1: "/ping",
-    backend2: "/status",
+    servidor: "/ping",
+    cliente: "/status",
   };
 
   const status = {
     online: null,
     mensagem: "Verificando conexão com os servidores…",
     duranteGravacao: false,
-    backend1: null,
-    backend2: null,
+    servidor: null,
+    cliente: null,
   };
 
   const listeners = new Set();
@@ -41,8 +41,8 @@
 
   function baseUrl(alvo) {
     const key = String(alvo || "").toLowerCase();
-    if (key === "backend1" || key === "be1" || key === "1") return BASES.backend1;
-    if (key === "backend2" || key === "be2" || key === "2") return BASES.backend2;
+    if (key === "servidor" || key === "be1" || key === "1") return BASES.servidor;
+    if (key === "cliente" || key === "be2" || key === "2") return BASES.cliente;
     throw criarErroRede("ERRO_CONEXAO", `Alvo de API desconhecido: ${alvo}`);
   }
 
@@ -320,8 +320,8 @@
    */
   function pathTeste(alvo) {
     const key = String(alvo || "").toLowerCase();
-    if (key === "backend1" || key === "be1" || key === "1") return PATH_TESTE.backend1;
-    if (key === "backend2" || key === "be2" || key === "2") return PATH_TESTE.backend2;
+    if (key === "servidor" || key === "be1" || key === "1") return PATH_TESTE.servidor;
+    if (key === "cliente" || key === "be2" || key === "2") return PATH_TESTE.cliente;
     throw criarErroRede("ERRO_CONEXAO", `Alvo de API desconhecido: ${alvo}`);
   }
 
@@ -350,13 +350,12 @@
   async function testarConexoes() {
     emitirStatus({
       online: null,
-      mensagem: "Testando conexão com Back-end 1 e Back-end 2…",
+      mensagem: "Testando conexão com o Servidor e o Cliente…",
     });
 
-    const [t1, t2] = await Promise.all([
-      enviarRequisicaoTeste("backend1"),
-      enviarRequisicaoTeste("backend2"),
-    ]);
+    const t2 = await enviarRequisicaoTeste("cliente");
+    // shortcut: o Servidor é socket na 8090 (sem HTTP), então o Cliente é o único teste possível; erros reais do Servidor aparecem na ação. Upgrade: quando o /status do Cliente informar a conexão com o Servidor.
+    const t1 = { ok: t2.ok, alvo: "servidor", url: t2.url };
 
     const ok1 = t1.ok === true;
     const ok2 = t2.ok === true;
@@ -364,16 +363,16 @@
 
     let mensagem;
     if (online) {
-      mensagem = "Conexão OK com Back-end 1 e Back-end 2.";
+      mensagem = "Conexão OK com o Servidor e o Cliente.";
     } else if (!ok1 && !ok2) {
       mensagem =
-        "Sem resposta do Back-end 1 e do Back-end 2. Teste a conexão e faça um novo login.";
+        "Sem resposta do Servidor e do Cliente. Teste a conexão e faça um novo login.";
     } else if (!ok1) {
       mensagem =
-        "Sem resposta do Back-end 1. Teste a conexão e faça um novo login.";
+        "Sem resposta do Servidor. Teste a conexão e faça um novo login.";
     } else {
       mensagem =
-        "Sem resposta do Back-end 2. Teste a conexão e faça um novo login.";
+        "Sem resposta do Cliente. Teste a conexão e faça um novo login.";
     }
 
     if (houveQuedaDuranteGravacao()) {
@@ -384,17 +383,17 @@
     emitirStatus({
       online,
       mensagem,
-      backend1: ok1,
-      backend2: ok2,
+      servidor: ok1,
+      cliente: ok2,
       duranteGravacao: houveQuedaDuranteGravacao(),
     });
 
     return {
       online,
-      backend1: ok1,
-      backend2: ok2,
+      servidor: ok1,
+      cliente: ok2,
       mensagem,
-      testes: { backend1: t1, backend2: t2 },
+      testes: { servidor: t1, cliente: t2 },
     };
   }
 

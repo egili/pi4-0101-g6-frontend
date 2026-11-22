@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // O Cliente gera salt e hash e envia ao Servidor; a chave não sai dele (ADR 0002)
       const resultado = await ApiCliente.cadastrar({ username, senha: senhaMestra });
 
-      // Sucesso só com resposta explícita do Back-end 1
+      // Sucesso só com resposta explícita do Servidor
       if (!resultado) {
         exibirAlerta(
           "Cadastro sem resposta do servidor. Nada foi confirmado como sucesso.",

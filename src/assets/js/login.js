@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      if (!conexao.testes?.backend1?.ok || !conexao.testes?.backend2?.ok) {
+      if (!conexao.testes?.servidor?.ok || !conexao.testes?.cliente?.ok) {
         exibirAlerta(
           "Teste de conexão incompleto. Nada foi confirmado como sucesso.",
           "erro"
