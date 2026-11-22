@@ -1,6 +1,6 @@
 /**
  * UI de conexão do Cliente:
- * - testa Back-end 1 e Back-end 2
+ * - testa Servidor e Cliente
  * - avisa queda (nunca sucesso sem resposta)
  * - pede nova conexão + novo login
  * - após queda em gravação, orienta conferir a lista de credenciais

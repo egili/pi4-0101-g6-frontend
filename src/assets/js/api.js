@@ -1,5 +1,5 @@
 /**
- * Cliente do navegador: fala só com o Cliente (Back-end 2), pela API HTTP.
+ * Cliente do navegador: fala só com o Cliente (Cliente), pela API HTTP.
  * Não guarda token nem chave de cifragem: os dois ficam no Cliente (ADR 0002 e 0005).
  */
 (function (global) {
@@ -53,7 +53,7 @@
       global.sessionStorage.removeItem(STORAGE_USUARIO);
       global.sessionStorage.removeItem(STORAGE_UID);
     } catch (_) {}
-    HttpClient.post("backend2", "/api/logout", {}, { isWrite: false }).catch(() => {});
+    HttpClient.post("cliente", "/api/logout", {}, { isWrite: false }).catch(() => {});
   }
 
   // --- Conta ---
@@ -62,7 +62,7 @@
     if (!username || !senha) {
       throw HttpClient.criarErroRede("CAMPO_OBRIGATORIO_AUSENTE", "Preencha usuário e senha mestra para continuar.");
     }
-    const resultado = await HttpClient.post("backend2", "/api/login", { username, senha }, { isWrite: false });
+    const resultado = await HttpClient.post("cliente", "/api/login", { username, senha }, { isWrite: false });
     return HttpClient.exigirResposta(resultado, "Sem resposta do Cliente ao fazer login.");
   }
 
@@ -71,7 +71,7 @@
       throw HttpClient.criarErroRede("CAMPO_OBRIGATORIO_AUSENTE", "Preencha todos os campos obrigatórios.");
     }
     const resultado = await HttpClient.post(
-      "backend2",
+      "cliente",
       "/api/cadastro",
       { username, senha },
       { isWrite: true, writeId: `register:${username}`, requireBody: true }
@@ -91,7 +91,7 @@
     if (!senha) throw HttpClient.criarErroRede("DADOS_INVALIDOS", "A senha do serviço é obrigatória.");
 
     const resultado = await HttpClient.post(
-      "backend2",
+      "cliente",
       "/api/credenciais",
       { servico: servico.trim(), usuarioServico: usuarioServico.trim(), senha },
       {
@@ -109,7 +109,7 @@
   }
 
   async function listarCredenciais() {
-    const resultado = await HttpClient.get("backend2", "/api/credenciais", { requireBody: true });
+    const resultado = await HttpClient.get("cliente", "/api/credenciais", { requireBody: true });
     const data = HttpClient.exigirResposta(resultado, "Listagem sem resposta do Cliente.");
     if (!Array.isArray(data)) throw HttpClient.criarErroRede("SEM_RESPOSTA", "Listagem sem lista de credenciais.");
     return data;
@@ -117,7 +117,7 @@
 
   async function decifrarSenha({ id }) {
     if (id == null) throw HttpClient.criarErroRede("DADOS_INVALIDOS", "Credencial sem identificador.");
-    const resultado = await HttpClient.get("backend2", `/api/credenciais/${encodeURIComponent(id)}/senha`, { requireBody: true });
+    const resultado = await HttpClient.get("cliente", `/api/credenciais/${encodeURIComponent(id)}/senha`, { requireBody: true });
     const data = HttpClient.exigirResposta(resultado, "Decifragem sem resposta do Cliente.");
     if (!data || typeof data.senha !== "string") throw HttpClient.criarErroRede("SEM_RESPOSTA", "Cliente não devolveu a senha.");
     return data.senha;
@@ -128,7 +128,7 @@
       throw HttpClient.criarErroRede("DADOS_INVALIDOS", "Preencha todos os campos da credencial.");
     }
     const resultado = await HttpClient.put(
-      "backend2",
+      "cliente",
       `/api/credenciais/${encodeURIComponent(id)}`,
       { servico, usuarioServico, senha },
       {
@@ -142,7 +142,7 @@
   }
 
   async function excluirCredencial({ id }) {
-    const resultado = await HttpClient.del("backend2", `/api/credenciais/${encodeURIComponent(id)}`, {
+    const resultado = await HttpClient.del("cliente", `/api/credenciais/${encodeURIComponent(id)}`, {
       isWrite: true,
       writeId: `del_cred:${id}`,
       requireBody: true,
@@ -155,7 +155,7 @@
 
   async function exportarBackup(senhaBackup) {
     if (!senhaBackup) throw HttpClient.criarErroRede("CAMPO_OBRIGATORIO_AUSENTE", "Digite a senha do backup para exportar.");
-    const resultado = await HttpClient.post("backend2", "/api/backup/exportar", { senhaBackup }, {
+    const resultado = await HttpClient.post("cliente", "/api/backup/exportar", { senhaBackup }, {
       isWrite: false,
       requireBody: true,
       emptyMessage: "Exportação sem resposta do Cliente.",
@@ -166,7 +166,7 @@
   async function importarBackup(vault, senhaBackup) {
     if (!vault || !senhaBackup) throw HttpClient.criarErroRede("CAMPO_OBRIGATORIO_AUSENTE", "Informe o arquivo e a senha do backup.");
     const resultado = await HttpClient.post(
-      "backend2",
+      "cliente",
       "/api/backup/importar",
       { vault, senhaBackup },
       { isWrite: true, writeId: "import_backup", requireBody: true, emptyMessage: "Importação sem resposta do Cliente." }
