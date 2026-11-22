@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnImportar = document.getElementById("btn-importar");
   const backupFile = document.getElementById("backup-file");
   const filePick = document.querySelector(".file-pick span");
-  const btnPasta = document.getElementById("btn-pasta");
   const btnConta = document.getElementById("btn-conta");
 
   const credenciais = new Map();
@@ -425,12 +424,6 @@ document.addEventListener("DOMContentLoaded", () => {
       filePick.textContent = backupFile.files[0]
         ? backupFile.files[0].name
         : "Escolher arquivo";
-    });
-  }
-
-  if (btnPasta) {
-    btnPasta.addEventListener("click", () => {
-      alert("Nova pasta — hard coded por enquanto.");
     });
   }
 
