@@ -181,17 +181,18 @@
             <h3 class="tool-panel__title">BACKUP E RESTAURAÇÃO</h3>
 
             <div class="tool-form">
+              <h4 class="tool-section__title">1. Exportar</h4>
+              <input type="password" id="backup-senha-exportar" placeholder="Senha do backup para exportar" />
               <button type="button" class="btn-tool btn-tool--full" id="btn-exportar">
                 Exportar backup criptografado
               </button>
 
+              <h4 class="tool-section__title">2. Importar</h4>
               <label class="file-pick" for="backup-file">
                 <span>Escolher arquivo</span>
                 <input type="file" id="backup-file" />
               </label>
-
               <input type="password" id="backup-senha" placeholder="Senha do backup para importar" />
-
               <button type="button" class="btn-tool btn-tool--full" id="btn-importar">
                 Importar backup criptografado
               </button>
