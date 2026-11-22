@@ -215,8 +215,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const senha = await ApiCliente.decifrarSenha({ id });
       if (meuPedido !== pedidoSenha) return;
       contaSenha.value = senha;
-      contaSenha.type = "text";
-      if (btnMostrarSenha) btnMostrarSenha.textContent = "OCULTAR";
       exibirCofreAlerta("");
     } catch (erro) {
       if (meuPedido !== pedidoSenha) return;
