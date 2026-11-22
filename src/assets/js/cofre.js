@@ -334,9 +334,9 @@ document.addEventListener("DOMContentLoaded", () => {
         btnExportar.textContent = "Gerando backup...";
 
         try {
-            const senhaExportar = document.getElementById('backup-senha')?.value;
+            const senhaExportar = document.getElementById('backup-senha-exportar')?.value;
             if (!senhaExportar) {
-              alert("Digite a senha do backup no campo de importação antes de exportar.");
+              alert("Digite a senha do backup no campo de exportação antes de exportar.");
               return;
             }
             const dadosBackup = await ApiCliente.exportarBackup(senhaExportar);
