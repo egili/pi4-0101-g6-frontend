@@ -21,6 +21,7 @@
     ERRO_BANCO: "Erro ao salvar no banco de dados.",
     SEM_RESPOSTA: "Comando sem resposta do servidor. Nada foi confirmado como sucesso.",
     BACKUP_VAZIO: "Você não tem credenciais salvas para exportar.",
+    CREDENCIAIS_DESATUALIZADAS: "Suas credenciais mudaram enquanto a senha era trocada. Tente de novo.",
   };
 
   function mensagemErro(codigo, fallback) {
@@ -174,6 +175,17 @@
     return HttpClient.exigirResposta(resultado, "Sem resposta do Cliente ao importar o backup.");
   }
 
+  async function alterarSenhaMestra(senhaAtual, novaSenha) {
+    if (!senhaAtual || !novaSenha) throw HttpClient.criarErroRede("CAMPO_OBRIGATORIO_AUSENTE", "Informe a senha atual e a nova senha.");
+    const resultado = await HttpClient.post(
+      "cliente",
+      "/api/senha-mestra",
+      { senhaAtual, novaSenha },
+      { isWrite: true, writeId: "senha_mestra", requireBody: true, emptyMessage: "Troca de senha sem resposta do Cliente." }
+    );
+    return HttpClient.exigirResposta(resultado, "Sem resposta do Cliente ao trocar a senha mestra.");
+  }
+
   global.ApiCliente = {
     mensagemErro,
     salvarSessao,
@@ -188,5 +200,6 @@
     excluirCredencial,
     exportarBackup,
     importarBackup,
+    alterarSenhaMestra,
   };
 })(window);

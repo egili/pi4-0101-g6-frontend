@@ -317,10 +317,27 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnGerar) btnGerar.addEventListener("click", generatePassword);
 
   if (formMestra) {
-    formMestra.addEventListener("submit", (event) => {
+    formMestra.addEventListener("submit", async (event) => {
       event.preventDefault();
-      alert("Senha mestra atualizada (hard coded).");
-      formMestra.reset();
+      const atual = document.getElementById("mestra-atual").value;
+      const nova = document.getElementById("mestra-nova").value;
+      const confirmar = document.getElementById("mestra-confirmar").value;
+      if (nova !== confirmar) {
+        alert("A confirmação não confere com a nova senha.");
+        return;
+      }
+      const botao = formMestra.querySelector("button[type=submit]");
+      botao.disabled = true;
+      try {
+        await ApiCliente.alterarSenhaMestra(atual, nova);
+        alert("Senha mestra alterada com sucesso.");
+        formMestra.reset();
+      } catch (erro) {
+        console.error(erro);
+        alert(erro.codigo === "SENHA_INCORRETA" ? "A senha mestra atual está incorreta." : ApiCliente.mensagemErro(erro.codigo, erro.message));
+      } finally {
+        botao.disabled = false;
+      }
     });
   }
 
