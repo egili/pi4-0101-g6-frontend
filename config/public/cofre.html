@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cofre — Cofre de Senhas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/cofre.css" />
+</head>
+<body class="page-cofre">
+  <div class="vault" id="vault">
+    <aside class="vault-sidebar">
+      <div class="vault-sidebar__top">
+        <div class="vault-sidebar__heading">
+          <h1 class="vault-sidebar__title">Contas</h1>
+          <div class="vault-sidebar__actions">
+            <button type="button" class="chip" id="btn-conta">+Conta</button>
+          </div>
+        </div>
+
+        <a href="index.html" class="btn-lock" id="btn-bloquear">Bloquear Cofre</a>
+
+        <label class="search" for="busca">
+          <span class="search__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M16 16l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <input
+            type="search"
+            id="busca"
+            placeholder="Buscar serviço ou login"
+          />
+        </label>
+      </div>
+
+      <div id="cofre-alerta" class="form-alerta" hidden></div>
+      <p class="lista-status" id="lista-status" hidden></p>
+
+      <nav class="tree" id="lista-servicos" aria-label="Serviços"></nav>
+    </aside>
+
+    <section class="vault-detail" aria-labelledby="detail-title">
+      <!-- View: Pasta -->
+      <div class="view view--pasta is-visible" id="view-pasta">
+        <header class="vault-detail__header">
+          <h2 id="detail-title" class="vault-detail__title">Cofre</h2>
+          <button type="button" class="menu-btn btn-open-tools" aria-label="Abrir ferramentas">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </header>
+
+        <div class="vault-detail__body">
+          <p class="lista-status" id="cofre-vazio">Selecione um serviço para ver a senha em texto claro.</p>
+        </div>
+      </div>
+
+      <!-- View: Conta -->
+      <div class="view view--conta" id="view-conta" hidden>
+        <header class="vault-detail__header">
+          <h2 class="vault-detail__title" id="conta-titulo">Serviço</h2>
+          <div class="vault-detail__header-actions">
+            <button type="button" class="btn-fav" id="btn-favoritar" aria-pressed="false">
+              <span aria-hidden="true">☆</span> FAVORITAR
+            </button>
+            <button type="button" class="menu-btn btn-open-tools" aria-label="Abrir ferramentas">
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+          </div>
+        </header>
+
+        <div class="vault-detail__body">
+          <div class="detail-field">
+            <label for="conta-nome">NOME:</label>
+            <div class="detail-field__row">
+              <input type="text" id="conta-nome" value="" readonly />
+              <button type="button" class="btn-copy" data-copy-target="conta-nome">COPIAR</button>
+            </div>
+          </div>
+
+          <div class="info-block">
+            <h3 class="info-block__title">Informações:</h3>
+
+            <div class="detail-field">
+              <label for="conta-login">LOGIN:</label>
+              <div class="detail-field__row">
+                <input type="text" id="conta-login" value="" readonly />
+                <button type="button" class="btn-copy" data-copy-target="conta-login">COPIAR</button>
+              </div>
+            </div>
+
+            <div class="detail-field">
+              <label for="conta-senha">SENHA:</label>
+              <div class="detail-field__row">
+                <input type="password" id="conta-senha" value="" readonly />
+                <button type="button" class="btn-ghost" id="btn-mostrar-senha">MOSTRAR</button>
+                <button type="button" class="btn-copy" data-copy-target="conta-senha">COPIAR</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-actions">
+            <button type="button" class="btn btn--secondary" id="btn-editar-conta">EDITAR</button>
+            <button type="button" class="btn btn--secondary" id="btn-excluir-conta">EXCLUIR</button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <aside class="vault-tools" id="vault-tools" aria-hidden="true">
+      <div class="vault-tools__inner">
+        <header class="vault-tools__header">
+          <h2 class="vault-tools__title">Ferramentas</h2>
+          <button type="button" class="menu-btn menu-btn--close" id="btn-close-tools" aria-label="Fechar ferramentas">
+            <span class="menu-btn__x" aria-hidden="true"></span>
+          </button>
+        </header>
+
+        <div class="tools-nav" role="tablist" aria-label="Ferramentas">
+          <button type="button" class="tools-nav__btn is-active" role="tab" aria-selected="true" data-tool="gerador">
+            GERADOR DE SENHAS
+          </button>
+          <button type="button" class="tools-nav__btn" role="tab" aria-selected="false" data-tool="mestra">
+            ALTERAR SENHA MESTRE
+          </button>
+          <button type="button" class="tools-nav__btn" role="tab" aria-selected="false" data-tool="backup">
+            BACKUP E RESTAURAÇÃO
+          </button>
+        </div>
+
+        <div class="tools-panels">
+          <!-- Gerador -->
+          <div class="tool-panel is-active" id="tool-gerador" role="tabpanel">
+            <h3 class="tool-panel__title">GERADOR DE SENHAS</h3>
+
+            <div class="generator">
+              <label class="generator__label" for="senha-length">
+                Quantidade de caracteres: <strong id="senha-length-value">16</strong>
+              </label>
+              <input type="range" id="senha-length" min="8" max="64" value="16" />
+
+              <div class="generator__options">
+                <label class="check"><input type="checkbox" id="opt-upper" checked /> Maiúscula</label>
+                <label class="check"><input type="checkbox" id="opt-lower" checked /> Minúscula</label>
+                <label class="check"><input type="checkbox" id="opt-number" checked /> Número</label>
+                <label class="check"><input type="checkbox" id="opt-symbol" checked /> Símbolos</label>
+              </div>
+
+              <button type="button" class="btn-tool" id="btn-gerar-senha">Gerar senha</button>
+
+              <div class="detail-field__row generator__result">
+                <input type="text" id="senha-gerada" readonly value="" placeholder="Senha gerada" />
+                <button type="button" class="btn-copy" data-copy-target="senha-gerada">COPIAR</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Senha mestra -->
+          <div class="tool-panel" id="tool-mestra" role="tabpanel" hidden>
+            <h3 class="tool-panel__title">ALTERAR SENHA MESTRE</h3>
+
+            <form class="tool-form" id="form-senha-mestra">
+              <input type="password" id="mestra-atual" placeholder="Senha mestra atual" required />
+              <input type="password" id="mestra-nova" placeholder="Nova senha" required />
+              <input type="password" id="mestra-confirmar" placeholder="Confirmar nova senha" required />
+              <button type="submit" class="btn-tool btn-tool--full">Salvar nova senha mestre</button>
+            </form>
+          </div>
+
+          <!-- Backup -->
+          <div class="tool-panel" id="tool-backup" role="tabpanel" hidden>
+            <h3 class="tool-panel__title">BACKUP E RESTAURAÇÃO</h3>
+
+            <div class="tool-form">
+              <h4 class="tool-section__title">1. Exportar</h4>
+              <input type="password" id="backup-senha-exportar" placeholder="Senha do backup para exportar" />
+              <button type="button" class="btn-tool btn-tool--full" id="btn-exportar">
+                Exportar backup criptografado
+              </button>
+
+              <h4 class="tool-section__title">2. Importar</h4>
+              <label class="file-pick" for="backup-file">
+                <span>Escolher arquivo</span>
+                <input type="file" id="backup-file" />
+              </label>
+              <input type="password" id="backup-senha" placeholder="Senha do backup para importar" />
+              <button type="button" class="btn-tool btn-tool--full" id="btn-importar">
+                Importar backup criptografado
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Modal Interativo: Salvar Credencial (+Conta) -->
+    <div class="modal" id="modal-conta" hidden aria-hidden="true" role="dialog" aria-labelledby="modal-conta-title">
+      <div class="modal__overlay" id="modal-conta-overlay"></div>
+      <div class="modal__dialog">
+        <header class="modal__header">
+          <h2 id="modal-conta-title" class="modal__title">Nova Credencial Cifrada</h2>
+          <button type="button" class="menu-btn menu-btn--close" id="btn-fechar-modal-conta" aria-label="Fechar janela">
+            <span class="menu-btn__x" aria-hidden="true"></span>
+          </button>
+        </header>
+
+        <div id="modal-conta-alerta" class="form-alerta" hidden></div>
+
+        <form class="modal__form" id="form-nova-conta" novalidate>
+          <div class="field">
+            <label for="nova-conta-servico">Serviço (ex: Gmail, GitHub)</label>
+            <input
+              type="text"
+              id="nova-conta-servico"
+              name="servico"
+              placeholder="ex: Gmail"
+              required
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="field">
+            <label for="nova-conta-usuario">Usuário / Login do serviço</label>
+            <input
+              type="text"
+              id="nova-conta-usuario"
+              name="usuarioServico"
+              placeholder="ex: meu_email@gmail.com"
+              required
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="field">
+            <label for="nova-conta-senha">Senha a ser salva</label>
+            <div class="detail-field__row">
+              <input
+                type="password"
+                id="nova-conta-senha"
+                name="senha"
+                placeholder="••••••••••••"
+                required
+                autocomplete="new-password"
+              />
+              <button type="button" class="btn-ghost" id="btn-toggle-senha-modal">MOSTRAR</button>
+            </div>
+            <small class="field-hint">A digitação é mascarada. A cifragem ocorre localmente no cliente antes de qualquer envio ao servidor.</small>
+          </div>
+
+          <div class="modal__actions">
+            <button type="button" class="btn btn--secondary" id="btn-cancelar-modal-conta">Cancelar</button>
+            <button type="submit" class="btn" id="btn-salvar-conta">Salvar Credencial</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+    <!-- Modal: Editar Credencial (H08.2 / CT5) -->
+    <div class="modal" id="modal-editar" hidden aria-hidden="true" role="dialog" aria-labelledby="modal-editar-title">
+      <div class="modal__overlay" id="modal-editar-overlay"></div>
+      <div class="modal__dialog">
+        <header class="modal__header">
+          <h2 id="modal-editar-title" class="modal__title">Editar Credencial</h2>
+          <button type="button" class="menu-btn menu-btn--close" id="btn-fechar-modal-editar" aria-label="Fechar janela">
+            <span class="menu-btn__x" aria-hidden="true"></span>
+          </button>
+        </header>
+
+        <div id="modal-editar-alerta" class="form-alerta" hidden></div>
+
+        <form class="modal__form" id="form-editar-conta" novalidate>
+          <div class="field">
+            <label for="editar-servico">Serviço</label>
+            <input type="text" id="editar-servico" name="servico" required autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="editar-usuario">Usuário / Login do serviço</label>
+            <input type="text" id="editar-usuario" name="usuarioServico" required autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="editar-senha">Senha</label>
+            <div class="detail-field__row">
+              <input type="password" id="editar-senha" name="senha" required autocomplete="new-password" />
+              <button type="button" class="btn-ghost" id="btn-toggle-senha-editar">MOSTRAR</button>
+            </div>
+            <small class="field-hint">A senha é recifrada localmente com um IV novo antes do envio.</small>
+          </div>
+
+          <div class="modal__actions">
+            <button type="button" class="btn btn--secondary" id="btn-cancelar-editar">Cancelar</button>
+            <button type="submit" class="btn" id="btn-salvar-editar">Salvar alterações</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal: Confirmar exclusão (H08.2 / CT6) -->
+    <div class="modal" id="modal-excluir" hidden aria-hidden="true" role="dialog" aria-labelledby="modal-excluir-title">
+      <div class="modal__overlay" id="modal-excluir-overlay"></div>
+      <div class="modal__dialog">
+        <header class="modal__header">
+          <h2 id="modal-excluir-title" class="modal__title">Excluir credencial</h2>
+        </header>
+
+        <p class="modal__texto">Tem certeza? A credencial será apagada do cofre e não poderá ser recuperada.</p>
+        <div id="modal-excluir-alerta" class="form-alerta" hidden></div>
+
+        <div class="modal__actions">
+          <button type="button" class="btn btn--secondary" id="btn-cancelar-excluir">Cancelar</button>
+          <button type="button" class="btn" id="btn-confirmar-excluir">Excluir</button>
+        </div>
+      </div>
+    </div>
+
+  <script src="assets/js/http.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script src="assets/js/conexao.js"></script>
+  <script src="assets/js/cofre.js"></script>
+</body>
+</html>

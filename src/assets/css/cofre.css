@@ -208,6 +208,17 @@
   transform: rotate(90deg);
 }
 
+.tree-item__fav {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.tree-item--favorito .tree-item__label {
+  color: var(--ink);
+}
+
 .tree-item__label {
   flex: 1;
   display: flex;
