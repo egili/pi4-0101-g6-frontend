@@ -20,9 +20,43 @@ document.addEventListener("DOMContentLoaded", () => {
   const filePick = document.querySelector(".file-pick span");
   const btnConta = document.getElementById("btn-conta");
 
+  const STORAGE_FAVORITOS = "cofre:favoritos";
   const credenciais = new Map();
   let credencialAberta = null;
   let pedidoSenha = 0;
+
+  function lerFavoritos() {
+    try {
+      const bruto = sessionStorage.getItem(STORAGE_FAVORITOS);
+      if (!bruto) return new Set();
+      const lista = JSON.parse(bruto);
+      if (!Array.isArray(lista)) return new Set();
+      return new Set(lista.map(String));
+    } catch (_) {
+      return new Set();
+    }
+  }
+
+  function salvarFavoritos(ids) {
+    try {
+      sessionStorage.setItem(STORAGE_FAVORITOS, JSON.stringify([...ids]));
+    } catch (_) {
+      /* storage indisponível */
+    }
+  }
+
+  function ehFavorito(id) {
+    return lerFavoritos().has(String(id));
+  }
+
+  function atualizarBotaoFavorito(ativo) {
+    if (!btnFavoritar) return;
+    btnFavoritar.classList.toggle("is-active", !!ativo);
+    btnFavoritar.setAttribute("aria-pressed", ativo ? "true" : "false");
+    btnFavoritar.innerHTML = ativo
+      ? '<span aria-hidden="true">★</span> DESFAVORITAR'
+      : '<span aria-hidden="true">☆</span> FAVORITAR';
+  }
 
   function exibirCofreAlerta(msg, tipo) {
     const alerta = document.getElementById("cofre-alerta");
@@ -92,12 +126,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!nav) return;
 
     const termo = (document.getElementById("busca")?.value || "").trim().toLowerCase();
-    const itens = [...credenciais.values()].filter((cred) => {
-      if (!termo) return true;
-      const servico = String(cred.servico || "").toLowerCase();
-      const login = String(cred.usuarioServico || "").toLowerCase();
-      return servico.includes(termo) || login.includes(termo);
-    });
+    const favoritos = lerFavoritos();
+    const itens = [...credenciais.values()]
+      .filter((cred) => {
+        if (!termo) return true;
+        const servico = String(cred.servico || "").toLowerCase();
+        const login = String(cred.usuarioServico || "").toLowerCase();
+        return servico.includes(termo) || login.includes(termo);
+      })
+      .sort((a, b) => {
+        const fa = favoritos.has(String(a.credencialId)) ? 0 : 1;
+        const fb = favoritos.has(String(b.credencialId)) ? 0 : 1;
+        if (fa !== fb) return fa - fb;
+        return String(a.servico || "").localeCompare(String(b.servico || ""), "pt-BR");
+      });
 
     nav.replaceChildren();
 
@@ -114,9 +156,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     itens.forEach((cred) => {
       const id = String(cred.credencialId);
+      const favorito = favoritos.has(id);
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "tree-item";
+      button.className = favorito ? "tree-item tree-item--favorito" : "tree-item";
       button.dataset.id = id;
       button.dataset.type = "conta";
       if (credencialAberta === id) {
@@ -124,9 +167,20 @@ document.addEventListener("DOMContentLoaded", () => {
         button.setAttribute("aria-current", "true");
       }
 
+      if (favorito) {
+        const estrela = document.createElement("span");
+        estrela.className = "tree-item__fav";
+        estrela.setAttribute("aria-hidden", "true");
+        estrela.textContent = "★";
+        button.appendChild(estrela);
+      }
+
       const label = document.createElement("span");
       label.className = "tree-item__label";
-      label.textContent = cred.servico || "Serviço";
+
+      const nome = document.createElement("span");
+      nome.textContent = cred.servico || "Serviço";
+      label.appendChild(nome);
 
       if (cred.usuarioServico) {
         const meta = document.createElement("span");
@@ -205,10 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btnMostrarSenha.textContent = "MOSTRAR";
       btnMostrarSenha.disabled = true;
     }
-    if (btnFavoritar) {
-      btnFavoritar.classList.remove("is-active");
-      btnFavoritar.setAttribute("aria-pressed", "false");
-    }
+    atualizarBotaoFavorito(ehFavorito(id));
     exibirCofreAlerta("Decifrando senha…");
 
     try {
@@ -295,8 +346,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnFavoritar) {
     btnFavoritar.addEventListener("click", () => {
-      const active = btnFavoritar.classList.toggle("is-active");
-      btnFavoritar.setAttribute("aria-pressed", active ? "true" : "false");
+      if (!credencialAberta) {
+        exibirCofreAlerta("Abra um serviço para favoritar.", "erro");
+        return;
+      }
+
+      const ids = lerFavoritos();
+      const id = String(credencialAberta);
+      if (ids.has(id)) ids.delete(id);
+      else ids.add(id);
+      salvarFavoritos(ids);
+
+      const ativo = ids.has(id);
+      atualizarBotaoFavorito(ativo);
+      renderLista();
     });
   }
 
